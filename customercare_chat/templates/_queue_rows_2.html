@@ -1,0 +1,23 @@
+{% for c in conversations %}
+    {% if user.is_superuser or c.assigned_to == user or not c.assigned_to %}
+    <a class="queue-row {% if c.unread_count %}unread{% endif %} {% if c.assigned_to == user %}is-mine{% endif %}"
+       href="{% url 'agent_conversation' c.pk %}"
+       data-conversation-id="{{ c.pk }}">
+        <span class="row-main">
+            <span class="customer">
+                {{ c.customer.username }} 
+                {% if user.is_superuser and c.assigned_to %}
+                    <span style="font-size: 0.75rem; color: #64748b; font-weight: normal;">(Assigned: {{ c.assigned_to.username }})</span>
+                {% endif %}
+            </span>
+            <span class="preview">{% if c.last_message_sender_type == 'agent' %}Agent: {% endif %}{{ c.last_message_text|truncatechars:80 }}</span>
+        </span>
+        <span class="row-side">
+            <span class="meta">{{ c.last_message_at|timesince }} ago</span>
+            {% if c.unread_count %}<span class="badge" title="Unread messages">{{ c.unread_count }}</span>{% endif %}
+        </span>
+    </a>
+    {% endif %}
+{% empty %}
+    <p class="empty-state" style="padding: 2rem 1rem;">No conversations yet. New chats will appear here automatically.</p>
+{% endfor %}

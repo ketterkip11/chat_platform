@@ -1,0 +1,13 @@
+# Environment variables
+.env
+
+# Python virtual environments
+venv/
+env/
+
+# Compiled Python files
+__pycache__/
+*.pyc
+
+# Local database (optional, but recommended so you don't commit test data)
+db.sqlite3

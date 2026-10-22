@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Support Chat{% endblock %}</title>
+    <style>
+        :root {
+            /* Theme: Blue, Black, White */
+            --ink: #0f172a;            /* Deep Slate / Black */
+            --paper: #f8fafc;          /* Off-white page background */
+            --panel: #ffffff;          /* Pure White */
+            --sidebar-bg: #ffffff;     /* Sidebar background */
+            --line: #e2e8f0;           /* Subtle border line */
+            --muted: #64748b;          /* Muted text */
+            --accent: #2563eb;         /* Royal Blue accent */
+            --accent-hover: #1d4ed8;   /* Darker blue hover state */
+            --accent-soft: #eff6ff;    /* Soft blue tint */
+            --danger: #dc2626;         /* Red action color */
+
+            --bubble-mine: #2563eb;       /* Sent message background */
+            --bubble-mine-ink: #ffffff;   /* Sent message text */
+            --bubble-theirs: #f1f5f9;     /* Received message background */
+            --bubble-theirs-ink: #0f172a; /* Received message text */
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--paper);
+            color: var(--ink);
+            overflow: hidden;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Nav Header */
+        nav.topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 56px;
+            padding: 0 1.25rem;
+            border-bottom: 1px solid var(--line);
+            background: var(--panel);
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        nav.topbar .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--ink);
+            text-decoration: none;
+            letter-spacing: -0.01em;
+        }
+
+        nav.topbar .brand svg {
+            width: 22px;
+            height: 22px;
+            fill: var(--accent);
+        }
+
+        nav.topbar .links {
+            display: flex;
+            gap: 1.25rem;
+            align-items: center;
+        }
+
+        nav.topbar a.nav-link {
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 0.88rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: color 0.15s ease;
+        }
+
+        nav.topbar a.nav-link:hover { color: var(--accent); }
+
+        nav.topbar a.nav-link.primary {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .logout-form { margin: 0; display: inline-flex; }
+
+        button.logout-btn {
+            background: none;
+            border: none;
+            padding: 0;
+            margin: 0;
+            color: var(--muted);
+            font-family: inherit;
+            font-size: 0.88rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            transition: color 0.15s ease;
+        }
+
+        button.logout-btn:hover { color: var(--danger); }
+
+        /* Main Workspace Layout */
+        main {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .whatsapp-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            background: var(--paper);
+        }
+
+        .whatsapp-sidebar {
+            width: 360px;
+            min-width: 300px;
+            max-width: 420px;
+            border-right: 1px solid var(--line);
+            background: var(--sidebar-bg);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 0.85rem 1rem;
+            background: var(--panel);
+            border-bottom: 1px solid var(--line);
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+
+        .whatsapp-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--paper);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .chat-placeholder {
+            margin: auto;
+            text-align: center;
+            color: var(--muted);
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chat-placeholder svg {
+            fill: var(--line);
+            margin-bottom: 1rem;
+        }
+
+        .chat-placeholder h2 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--ink);
+            margin: 0 0 0.4rem 0;
+        }
+
+        .chat-placeholder p {
+            font-size: 0.88rem;
+            color: var(--muted);
+            margin: 0;
+            max-width: 320px;
+            line-height: 1.4;
+        }
+
+        .page-narrow {
+            width: 100%;
+            max-width: 400px;
+            margin: auto;
+            padding: 1.5rem;
+        }
+
+        /* Form Styling */
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 0.75rem;
+            padding: 2rem;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+        }
+
+        .card h1 {
+            font-size: 1.25rem;
+            margin: 0 0 1.25rem;
+            font-weight: 700;
+            color: var(--ink);
+        }
+
+        .field { margin: 0 0 1.2rem; }
+
+        .field label {
+            display: block;
+            font-size: 0.85rem;
+            margin-bottom: 0.4rem;
+            color: var(--muted);
+            font-weight: 500;
+        }
+
+        .field input {
+            width: 100%;
+            padding: 0.65rem 0.8rem;
+            border: 1px solid var(--line);
+            border-radius: 0.5rem;
+            font-size: 0.95rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .field input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            width: 100%;
+            padding: 0.7rem;
+            border: none;
+            border-radius: 0.5rem;
+            background: var(--accent);
+            color: #ffffff;
+            font-size: 0.95rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+            text-decoration: none;
+        }
+
+        .btn:hover { background: var(--accent-hover); }
+
+        .btn-ghost {
+            background: transparent;
+            border: 1px solid var(--line);
+            color: var(--muted);
+        }
+
+        .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+        .helper-link {
+            text-align: center;
+            font-size: 0.85rem;
+            margin-top: 1.25rem;
+            color: var(--muted);
+        }
+
+        .helper-link a { color: var(--accent); text-decoration: none; font-weight: 600; }
+        .helper-link a:hover { text-decoration: underline; }
+
+        .errorlist {
+            list-style: none;
+            margin: 0 0 0.75rem;
+            padding: 0;
+            font-size: 0.82rem;
+            color: var(--danger);
+        }
+
+        /* Chat Window & Bubbles */
+        .chat-shell {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background: var(--paper);
+        }
+
+        .chat-header {
+            padding: 0.85rem 1.25rem;
+            background: var(--panel);
+            border-bottom: 1px solid var(--line);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .chat-header h1 {
+            margin: 0;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--ink);
+        }
+
+        .chat-header p {
+            margin: 0.15rem 0 0;
+            font-size: 0.82rem;
+            color: var(--muted);
+        }
+
+        .thread {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+            background: var(--paper);
+        }
+
+        .bubble-row { display: flex; }
+        .bubble-row.mine { justify-content: flex-end; }
+        .bubble-row.theirs { justify-content: flex-start; }
+
+        .bubble {
+            max-width: 70%;
+            padding: 0.65rem 0.95rem;
+            border-radius: 0.85rem;
+            font-size: 0.92rem;
+            line-height: 1.45;
+            position: relative;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+            word-break: break-word;
+        }
+
+        .bubble-row.mine .bubble {
+            background: var(--bubble-mine);
+            color: var(--bubble-mine-ink);
+            border-bottom-right-radius: 0.2rem;
+        }
+
+        .bubble-row.theirs .bubble {
+            background: var(--bubble-theirs);
+            color: var(--bubble-theirs-ink);
+            border: 1px solid var(--line);
+            border-bottom-left-radius: 0.2rem;
+        }
+
+        .meta {
+            display: block;
+            margin-top: 0.35rem;
+            font-size: 0.7rem;
+            opacity: 0.75;
+            text-align: right;
+        }
+
+        .bubble-row.theirs .meta {
+            text-align: left;
+        }
+
+        .attachment {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            margin-top: 0.4rem;
+            font-size: 0.82rem;
+            color: inherit;
+            text-decoration: underline;
+        }
+
+        .empty-state {
+            margin: auto;
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        /* Composer Bar */
+        form.composer {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.85rem 1.25rem;
+            border-top: 1px solid var(--line);
+            background: var(--panel);
+            flex-shrink: 0;
+        }
+
+        form.composer textarea {
+            flex: 1;
+            resize: none;
+            border: 1px solid var(--line);
+            border-radius: 0.6rem;
+            padding: 0.65rem 0.85rem;
+            font-family: inherit;
+            font-size: 0.92rem;
+            background: var(--paper);
+            color: var(--ink);
+            outline: none;
+            max-height: 120px;
+            transition: border-color 0.15s ease;
+        }
+
+        form.composer textarea:focus {
+            border-color: var(--accent);
+            background: #ffffff;
+        }
+
+        form.composer button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            background: var(--accent);
+            color: #ffffff;
+            padding: 0.65rem 1.1rem;
+            border-radius: 0.6rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+            height: 40px;
+        }
+
+        form.composer button:hover { background: var(--accent-hover); }
+
+        .close-form {
+            padding: 0.5rem 1.25rem;
+            background: var(--panel);
+            border-top: 1px solid var(--line);
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        .close-form button {
+            background: transparent;
+            border: 1px solid var(--line);
+            color: var(--muted);
+            padding: 0.35rem 0.75rem;
+            border-radius: 0.4rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .close-form button:hover {
+            border-color: var(--danger);
+            color: var(--danger);
+            background: rgba(220, 38, 38, 0.05);
+        }
+
+        /* Sidebar Conversation Queue */
+        .queue-toolbar {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .live-status {
+            margin-left: auto;
+            font-size: 0.75rem;
+            color: var(--muted);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-weight: 500;
+        }
+
+        .status-dot-icon {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--muted);
+            display: inline-block;
+        }
+
+        .live-status.on .status-dot-icon { background-color: var(--accent); }
+        .live-status.off .status-dot-icon { background-color: var(--danger); }
+
+        .filter-btn {
+            border: 1px solid var(--line);
+            background: var(--panel);
+            color: var(--muted);
+            border-radius: 999px;
+            padding: 0.3rem 0.8rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .filter-btn.active { background: var(--accent); border-color: var(--accent); color: #ffffff; }
+        .filter-btn .count { opacity: 0.85; margin-left: 0.2rem; }
+
+        .queue-rows {
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .queue-rows.only-unread .queue-row:not(.unread) { display: none; }
+
+        .queue-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.9rem 1rem;
+            border-bottom: 1px solid var(--line);
+            text-decoration: none;
+            color: var(--ink);
+            background: var(--panel);
+            transition: background-color 0.15s ease;
+            cursor: pointer;
+        }
+
+        .queue-row:hover { background: var(--paper); }
+        .queue-row.active { background: var(--accent-soft); border-left: 4px solid var(--accent); }
+        .queue-row .customer { font-weight: 600; font-size: 0.92rem; color: var(--ink); }
+        .queue-row .meta { color: var(--muted); font-size: 0.78rem; }
+
+        .queue-row .row-main {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+            min-width: 0;
+            flex: 1;
+        }
+
+        .queue-row .row-side {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.35rem;
+            flex-shrink: 0;
+            margin-left: 0.8rem;
+        }
+
+        .queue-row .preview {
+            color: var(--muted);
+            font-size: 0.83rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .queue-row.unread {
+            background: #ffffff;
+        }
+
+        .queue-row.unread .customer { font-weight: 700; color: var(--accent); }
+        .queue-row.unread .preview { color: var(--ink); font-weight: 600; }
+        .queue-row.unread .meta { color: var(--accent); font-weight: 600; }
+
+        /* Badges & Toasts */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 1.15rem;
+            height: 1.15rem;
+            padding: 0 0.35rem;
+            border-radius: 999px;
+            background: var(--accent);
+            color: #ffffff;
+            font-size: 0.68rem;
+            font-weight: 700;
+        }
+
+        #toast-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            pointer-events: none;
+        }
+
+        .toast {
+            pointer-events: auto;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-left: 4px solid var(--accent);
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.1);
+            max-width: 320px;
+            font-size: 0.85rem;
+            color: var(--ink);
+            opacity: 0;
+            transform: translateX(16px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        .toast.show { opacity: 1; transform: translateX(0); }
+        .toast strong { display: block; font-size: 0.82rem; margin-bottom: 0.2rem; color: var(--accent); }
+        .toast.clickable { cursor: pointer; }
+        .toast.clickable:hover { border-left-color: var(--accent-hover); }
+
+        {% block extra_style %}{% endblock %}
+    </style>
+</head>
+<body>
+    <script>
+        function showToast(title, body, onClick) {
+            const container = document.getElementById("toast-container");
+            const toast = document.createElement("div");
+            toast.className = onClick ? "toast clickable" : "toast";
+
+            const heading = document.createElement("strong");
+            heading.textContent = title;
+            toast.appendChild(heading);
+            toast.appendChild(document.createTextNode(body));
+
+            if (onClick) toast.addEventListener("click", onClick);
+            container.appendChild(toast);
+
+            requestAnimationFrame(() => toast.classList.add("show"));
+
+            setTimeout(() => {
+                toast.classList.remove("show");
+                setTimeout(() => toast.remove(), 250);
+            }, 5000);
+        }
+
+        function notifyDesktop(title, body) {
+            if (!("Notification" in window)) return;
+            if (document.visibilityState === "visible") return;
+
+            if (Notification.permission === "granted") {
+                new Notification(title, { body });
+            } else if (Notification.permission !== "denied") {
+                Notification.requestPermission().then((permission) => {
+                    if (permission === "granted") {
+                        new Notification(title, { body });
+                    }
+                });
+            }
+        }
+
+        function setQueueBadge(count) {
+            const badge = document.getElementById("queue-badge");
+            if (!badge) return;
+            if (count > 0) {
+                badge.textContent = count;
+                badge.style.display = "inline-flex";
+            } else {
+                badge.style.display = "none";
+            }
+        }
+
+        async function refreshUnreadBadge() {
+            try {
+                const res = await fetch("{% url 'agent_unread_count' %}", { cache: "no-store" });
+                if (!res.ok || res.redirected) return;
+                const data = await res.json();
+                setQueueBadge(data.unread);
+            } catch (err) {
+                console.warn("Could not refresh unread badge", err);
+            }
+        }
+
+        function connectNotifications(onEvent, onReconnect, onStatus) {
+            const scheme = window.location.protocol === "https:" ? "wss" : "ws";
+            const url = `${scheme}://${window.location.host}/ws/agent/notifications/`;
+            let delay = 1000;
+            let hasConnectedBefore = false;
+
+            function open() {
+                const ws = new WebSocket(url);
+
+                ws.onopen = () => {
+                    delay = 1000;
+                    if (onStatus) onStatus(true);
+                    if (hasConnectedBefore && onReconnect) onReconnect();
+                    hasConnectedBefore = true;
+                };
+                ws.onmessage = (event) => onEvent(JSON.parse(event.data));
+                ws.onclose = () => {
+                    if (onStatus) onStatus(false);
+                    setTimeout(open, delay);
+                    delay = Math.min(delay * 2, 15000);
+                };
+            }
+            open();
+        }
+
+        function startBadgePolling(intervalMs = 15000) {
+            setInterval(() => {
+                if (document.visibilityState === "visible") refreshUnreadBadge();
+            }, intervalMs);
+        }
+
+        window.addEventListener("pageshow", (event) => {
+            if (event.persisted && document.getElementById("queue-badge")) refreshUnreadBadge();
+        });
+    </script>
+
+    <nav class="topbar">
+        <a class="brand" href="{% if user.is_authenticated %}{% if user.is_superuser %}/admin/{% elif user.is_staff %}{% url 'agent_inbox' %}{% else %}{% url 'chat' %}{% endif %}{% else %}{% url 'login' %}{% endif %}">
+            <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
+            Support Console
+        </a>
+        <div class="links">
+            {% if user.is_authenticated %}
+                {% if user.is_superuser %}
+                    <a class="nav-link" href="/admin/">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
+                        Admin
+                    </a>
+                {% endif %}
+
+                {% if user.is_staff %}
+                    <a class="nav-link {% block nav_agent_active %}{% endblock %}" href="{% url 'agent_inbox' %}">
+                        Queue<span id="queue-badge" class="badge"{% if not agent_unread_count %} style="display:none;"{% endif %}>{{ agent_unread_count|default:"" }}</span>
+                    </a>
+                {% else %}
+                    <a class="nav-link {% block nav_chat_active %}{% endblock %}" href="{% url 'chat' %}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+                        Chat
+                    </a>
+                {% endif %}
+
+                <span class="nav-link">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                    {{ user.username }}
+                </span>
+
+                <form class="logout-form" method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="logout-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+                        Log out
+                    </button>
+                </form>
+            {% else %}
+                <a class="nav-link" href="{% url 'login' %}">Log in</a>
+                <a class="nav-link primary" href="{% url 'register' %}">Sign up</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <div id="toast-container"></div>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

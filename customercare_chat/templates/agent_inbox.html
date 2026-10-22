@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+
+{% block title %}Agent Console — Conversations{% endblock %}
+{% block nav_agent_active %}primary{% endblock %}
+
+{% block extra_style %}
+    .queue-rows.only-mine .queue-row:not(.is-mine) { display: none; }
+{% endblock %}
+
+{% block content %}
+<div class="whatsapp-container" id="whatsapp-container">
+    <!-- LEFT SIDEBAR: Conversations Queue -->
+    <div class="whatsapp-sidebar" id="whatsapp-sidebar">
+        <div class="sidebar-header">
+            <div class="queue-toolbar">
+                {% if user.is_superuser %}
+                <button type="button" class="filter-btn" data-filter="all">All <span class="count" id="count-all"></span></button>
+                {% endif %}
+                <button type="button" class="filter-btn" data-filter="my-chats">My Chats <span class="count" id="count-mine"></span></button>
+                <button type="button" class="filter-btn" data-filter="unread">Unread <span class="count" id="count-unread"></span></button>
+                
+                <span class="live-status" id="live-status" title="Whether new messages are pushed to this page instantly">
+                    <span class="status-dot-icon"></span> Connecting&hellip;
+                </span>
+            </div>
+        </div>
+
+        <div class="queue-rows" id="queue-rows">
+            {% include "_queue_rows_2.html" %}
+        </div>
+        <p class="empty-state" id="no-unread" style="padding: 2rem 1rem;" hidden>No conversations match this filter.</p>
+    </div>
+
+    <!-- RIGHT MAIN PANEL: Active Conversation View -->
+    <div class="whatsapp-main" id="whatsapp-main">
+        <div class="chat-placeholder" id="chat-placeholder">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/>
+            </svg>
+            <h2>Select a conversation</h2>
+            <p>Choose a customer chat from the queue on the left to start responding.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    const rowsEl = document.getElementById("queue-rows");
+    const noUnreadEl = document.getElementById("no-unread");
+    const filterButtons = document.querySelectorAll(".filter-btn");
+    const mainContainer = document.getElementById("whatsapp-main");
+    const placeholderHTML = mainContainer.innerHTML;
+
+    let activeChatSocket = null;
+    let currentConversationId = null;
+    const isSuperuser = {% if user.is_superuser %}true{% else %}false{% endif %};
+
+    // Fetch and inject conversation content into the right panel without page reloads
+    async function loadConversation(conversationId, targetUrl) {
+        if (currentConversationId === conversationId) return;
+
+        if (activeChatSocket) {
+            activeChatSocket.close();
+            activeChatSocket = null;
+        }
+
+        try {
+            const res = await fetch(targetUrl, { headers: { "X-Requested-With": "XMLHttpRequest" } });
+            if (!res.ok) return;
+
+            const htmlText = await res.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlText, "text/html");
+            const chatShell = doc.querySelector(".chat-shell");
+
+            if (!chatShell) return;
+
+            currentConversationId = conversationId;
+            mainContainer.innerHTML = "";
+            mainContainer.appendChild(chatShell);
+
+            initChatSocket(conversationId);
+            refreshQueue();
+        } catch (err) {
+            console.warn("Could not load conversation", err);
+        }
+    }
+
+    // Initialize WebSocket and form listeners for active conversation panel
+    function initChatSocket(conversationId) {
+        const thread = document.getElementById("thread");
+        const form = document.getElementById("composer");
+        if (!form) return;
+
+        const textarea = form.querySelector("textarea");
+        const closeForm = mainContainer.querySelector(".close-form");
+        const scheme = window.location.protocol === "https:" ? "wss" : "ws";
+
+        thread.scrollTop = thread.scrollHeight;
+
+        activeChatSocket = new WebSocket(`${scheme}://${window.location.host}/ws/chat/${conversationId}/`);
+
+        form.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const text = textarea.value.trim();
+            if (!text) return;
+
+            if (activeChatSocket.readyState !== WebSocket.OPEN) {
+                alert("Not connected to the chat server. Please refresh the page.");
+                return;
+            }
+            activeChatSocket.send(JSON.stringify({ message: text }));
+            textarea.value = "";
+        });
+
+        textarea.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                form.requestSubmit();
+            }
+        });
+
+        if (closeForm) {
+            closeForm.addEventListener("submit", async (e) => {
+                e.preventDefault();
+                const formData = new FormData(closeForm);
+                formData.append("close_conversation", "1");
+
+                await fetch(`/agent/${conversationId}/`, {
+                    method: "POST",
+                    body: formData,
+                    headers: { "X-CSRFToken": closeForm.querySelector('[name=csrfmiddlewaretoken]').value }
+                });
+
+                if (activeChatSocket) activeChatSocket.close();
+                currentConversationId = null;
+                mainContainer.innerHTML = placeholderHTML;
+                refreshQueue();
+            });
+        }
+
+        activeChatSocket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            const mine = data.sender_type === "agent";
+
+            const row = document.createElement("div");
+            row.className = `bubble-row ${mine ? "mine" : "theirs"}`;
+
+            const bubble = document.createElement("div");
+            bubble.className = "bubble";
+            bubble.textContent = data.message;
+
+            const meta = document.createElement("span");
+            meta.className = "meta";
+            meta.textContent = `${data.sender_username} \u00B7 ${data.timestamp}`;
+            bubble.appendChild(meta);
+
+            row.appendChild(bubble);
+            thread.appendChild(row);
+            thread.scrollTop = thread.scrollHeight;
+        };
+    }
+
+    // Intercept clicks on conversation rows
+    rowsEl.addEventListener("click", (e) => {
+        const row = e.target.closest(".queue-row");
+        if (row) {
+            e.preventDefault();
+            const convId = parseInt(row.dataset.conversationId, 10);
+            document.querySelectorAll(".queue-row").forEach(r => r.classList.remove("active"));
+            row.classList.add("active");
+            loadConversation(convId, row.href);
+        }
+    });
+
+    // Filter toggle logic
+    function applyFilter(filter) {
+        // Fallback constraint if non-admin somehow fetches "all" via cache
+        if (!isSuperuser && filter === "all") filter = "my-chats";
+
+        rowsEl.classList.remove("only-unread", "only-mine");
+        if (filter === "unread") rowsEl.classList.add("only-unread");
+        if (filter === "my-chats") rowsEl.classList.add("only-mine");
+
+        filterButtons.forEach((btn) => btn.classList.toggle("active", btn.dataset.filter === filter));
+        localStorage.setItem("inboxFilter", filter);
+        updateCounts();
+    }
+
+    function updateCounts() {
+        const total = rowsEl.querySelectorAll(".queue-row").length;
+        const unread = rowsEl.querySelectorAll(".queue-row.unread").length;
+        const mine = rowsEl.querySelectorAll(".queue-row.is-mine").length;
+
+        const allCountBadge = document.getElementById("count-all");
+        if (allCountBadge) allCountBadge.textContent = total;
+        
+        document.getElementById("count-unread").textContent = unread;
+        document.getElementById("count-mine").textContent = mine;
+
+        let visibleCount = total;
+        if (rowsEl.classList.contains("only-unread")) visibleCount = unread;
+        if (rowsEl.classList.contains("only-mine")) visibleCount = mine;
+
+        noUnreadEl.hidden = visibleCount > 0;
+    }
+
+    filterButtons.forEach((btn) => btn.addEventListener("click", () => applyFilter(btn.dataset.filter)));
+    
+    // Mount initial filter securely
+    let initialFilter = localStorage.getItem("inboxFilter") || (isSuperuser ? "all" : "my-chats");
+    applyFilter(initialFilter);
+
+    // Live updates and re-sync
+    const POLL_MS = 10000;
+    let refreshTimer = null;
+    let lastHtml = null;
+
+    async function refreshQueue() {
+        try {
+            const res = await fetch("{% url 'agent_inbox_rows' %}", { cache: "no-store" });
+            if (!res.ok || res.redirected) return;
+            const html = (await res.text()).trim();
+            if (html !== lastHtml) {
+                lastHtml = html;
+                rowsEl.innerHTML = html;
+                if (currentConversationId) {
+                    const activeRow = rowsEl.querySelector(`[data-conversation-id="${currentConversationId}"]`);
+                    if (activeRow) activeRow.classList.add("active");
+                }
+                updateCounts();
+            }
+            refreshUnreadBadge();
+        } catch (err) {
+            console.warn("Could not refresh inbox queue", err);
+        }
+    }
+
+    function scheduleRefresh() {
+        clearTimeout(refreshTimer);
+        refreshTimer = setTimeout(refreshQueue, 150);
+    }
+
+    const liveStatus = document.getElementById("live-status");
+    function setLiveStatus(connected) {
+        liveStatus.classList.toggle("on", connected);
+        liveStatus.classList.toggle("off", !connected);
+        liveStatus.innerHTML = connected 
+            ? `<span class="status-dot-icon"></span> Live` 
+            : `<span class="status-dot-icon"></span> Reconnecting&hellip;`;
+    }
+
+    connectNotifications(
+        (data) => {
+            const title = data.is_new_conversation
+                ? `New conversation from ${data.customer_username}`
+                : `New message from ${data.customer_username}`;
+            showToast(title, data.message, () => {
+                const row = rowsEl.querySelector(`[data-conversation-id="${data.conversation_id}"]`);
+                if (row) row.click();
+            });
+            notifyDesktop(title, data.message);
+            scheduleRefresh();
+        },
+        refreshQueue,
+        setLiveStatus
+    );
+
+    setInterval(() => {
+        if (document.visibilityState === "visible") refreshQueue();
+    }, POLL_MS);
+
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") refreshQueue();
+    });
+
+    window.addEventListener("pageshow", (event) => {
+        if (event.persisted) refreshQueue();
+    });
+</script>
+{% endblock %}
