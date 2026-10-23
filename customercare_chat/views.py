@@ -110,7 +110,7 @@ def agent_inbox_view(request):
 @staff_member_required(login_url="chat")
 def agent_inbox_rows_view(request):
     """HTML fragment view for live queue refreshes via AJAX."""
-    return render(request, "_queue_rows.html", {
+    return render(request, "_queue_rows_2.html", {
         "conversations": inbox_conversations(request.user),
     })
 

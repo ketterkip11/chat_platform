@@ -1,7 +1,5 @@
 from django.contrib import admin
-
-from .models import ChatMessage
-
+from .models import ChatMessage, Conversation, AgentStatus
 
 @admin.register(ChatMessage)
 class ChatMessageAdmin(admin.ModelAdmin):
@@ -16,3 +14,18 @@ class ChatMessageAdmin(admin.ModelAdmin):
     def short_message(self, obj):
         return obj.message[:75] + ("..." if len(obj.message) > 75 else "")
     short_message.short_description = "Message"
+
+@admin.register(Conversation)
+class ConversationAdmin(admin.ModelAdmin):
+    list_display = ('id', 'customer', 'assigned_to', 'is_closed', 'created_at')
+    list_filter = ('is_closed', 'created_at')
+    search_fields = ('customer__username', 'assigned_to__username')
+    autocomplete_fields = ('customer', 'assigned_to')
+    date_hierarchy = 'created_at'
+
+@admin.register(AgentStatus)
+class AgentStatusAdmin(admin.ModelAdmin):
+    list_display = ('user', 'is_online')
+    list_filter = ('is_online',)
+    search_fields = ('user__username',)
+    autocomplete_fields = ('user',)

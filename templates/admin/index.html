@@ -1,0 +1,151 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static admin_analytics %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    /* Theme overrides for Blue, Black, White */
+    .info-box {
+        box-shadow: 0 4px 6px rgba(15, 23, 42, 0.05);
+        border: 1px solid #e2e8f0;
+        border-radius: 0.5rem;
+        background: #ffffff;
+    }
+    .info-box-icon { border-radius: 0.5rem 0 0 0.5rem; }
+    .bg-primary { background-color: #2563eb !important; color: #fff; } /* Accent Blue */
+    .bg-dark { background-color: #0f172a !important; color: #fff; }    /* Slate Black */
+    .bg-success { background-color: #10b981 !important; color: #fff; } /* Success Green */
+    .bg-danger { background-color: #dc2626 !important; color: #fff; }  /* Danger Red */
+    
+    .card-custom {
+        border-radius: 0.75rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% get_dashboard_metrics as metrics %}
+
+<div class="content-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h4 class="mb-3" style="color: #0f172a; font-weight: 700;">Performance Overview</h4>
+        </div>
+        
+        <!-- KPI Cards -->
+        <div class="col-12 col-sm-6 col-md-3">
+            <div class="info-box">
+                <span class="info-box-icon bg-primary elevation-1"><i class="fas fa-comments"></i></span>
+                <div class="info-box-content">
+                    <span class="info-box-text text-muted">Total Conversations</span>
+                    <span class="info-box-number" style="font-size: 1.5rem;">{{ metrics.kpis.total }}</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-12 col-sm-6 col-md-3">
+            <div class="info-box mb-3">
+                <span class="info-box-icon bg-success elevation-1"><i class="fas fa-check-circle"></i></span>
+                <div class="info-box-content">
+                    <span class="info-box-text text-muted">Completed Tickets</span>
+                    <span class="info-box-number" style="font-size: 1.5rem;">{{ metrics.kpis.completed }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-md-3">
+            <div class="info-box mb-3">
+                <span class="info-box-icon bg-dark elevation-1"><i class="fas fa-headset"></i></span>
+                <div class="info-box-content">
+                    <span class="info-box-text text-muted">Active Chats</span>
+                    <span class="info-box-number" style="font-size: 1.5rem;">{{ metrics.kpis.active }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-md-3">
+            <div class="info-box mb-3">
+                <span class="info-box-icon bg-danger elevation-1"><i class="fas fa-exclamation-circle"></i></span>
+                <div class="info-box-content">
+                    <span class="info-box-text text-muted">Missed / Unassigned</span>
+                    <span class="info-box-number" style="font-size: 1.5rem;">{{ metrics.kpis.missed }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics Chart -->
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card card-custom">
+                <div class="card-header border-0 bg-white">
+                    <h3 class="card-title" style="font-weight: 600; color: #0f172a;">Conversation Volume (Last 7 Days)</h3>
+                </div>
+                <div class="card-body">
+                    <div class="position-relative mb-4">
+                        <canvas id="volumeChart" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Standard Jazzmin Quick Links -->
+        <div class="col-lg-4">
+            <div class="card card-custom">
+                <div class="card-header border-0 bg-white">
+                    <h3 class="card-title" style="font-weight: 600; color: #0f172a;">Quick Actions</h3>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="nav nav-pills flex-column">
+                        <li class="nav-item">
+                            <a href="{% url 'admin:customercare_chat_conversation_changelist' %}" class="nav-link text-dark">
+                                <i class="fas fa-comments text-primary mr-2"></i> Manage Conversations
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{% url 'admin:auth_user_changelist' %}" class="nav-link text-dark">
+                                <i class="fas fa-users text-primary mr-2"></i> Manage Users & Agents
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{% url 'agent_inbox' %}" class="nav-link text-dark" target="_blank">
+                                <i class="fas fa-external-link-alt text-primary mr-2"></i> Open Live Agent Console
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const ctx = document.getElementById('volumeChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: {{ metrics.chart.labels|safe }},
+                datasets: [{
+                    label: 'New Conversations',
+                    backgroundColor: '#2563eb', // Royal Blue Theme
+                    borderColor: '#2563eb',
+                    borderRadius: 4,
+                    data: {{ metrics.chart.data|safe }}
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { beginAtZero: true, grid: { borderDash: [2, 4], color: "#e2e8f0" } }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}
