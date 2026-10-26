@@ -1,9 +1,9 @@
 from django.contrib.admin.views.decorators import staff_member_required
-from django.contrib.auth import login
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth import login, get_user_model
 from django.contrib.auth.views import LoginView
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.crypto import get_random_string
 from django.views.decorators.cache import never_cache
 
 from channels.layers import get_channel_layer
@@ -17,6 +17,8 @@ from .queries import (
     unread_conversation_count,
     assign_oldest_pending_chat,
 )
+
+User = get_user_model()
 
 
 def get_user_home_redirect(user):
@@ -70,9 +72,39 @@ def register_view(request):
 # ---------------------------------------------------------------------------
 
 @never_cache
-@login_required
+def guest_start_view(request):
+    """Root view. Captures name and email for unauthenticated users before chatting."""
+    if request.user.is_authenticated:
+        return get_user_home_redirect(request.user)
+
+    if request.method == "POST":
+        name = request.POST.get("name", "").strip()
+        email = request.POST.get("email", "").strip()
+
+        if name and email:
+            # Generate a unique username but store the provided name in first_name
+            safe_name = "".join(c for c in name if c.isalnum())
+            guest_username = f"{safe_name.lower()}_{get_random_string(5)}"
+            
+            user = User.objects.create_user(
+                username=guest_username[:150], 
+                email=email,
+                first_name=name[:150]
+            )
+            login(request, user)
+            return redirect("chat")
+        
+        return render(request, "guest_start.html", {"error": "Please provide both your name and email."})
+
+    return render(request, "guest_start.html")
+
+
+@never_cache
 def chat_view(request):
-    """Customer chat view. Redirects staff and admins to their respective dashboards."""
+    """Customer chat view. Redirects to root if unauthenticated."""
+    if not request.user.is_authenticated:
+        return redirect("guest_start")
+        
     if request.user.is_staff or request.user.is_superuser:
         return get_user_home_redirect(request.user)
 
@@ -98,7 +130,7 @@ def chat_view(request):
 # ---------------------------------------------------------------------------
 
 @never_cache
-@staff_member_required(login_url="chat")
+@staff_member_required(login_url="login")
 def agent_inbox_view(request):
     """The agent's inbox containing all open conversations."""
     return render(request, "agent_inbox.html", {
@@ -107,7 +139,7 @@ def agent_inbox_view(request):
 
 
 @never_cache
-@staff_member_required(login_url="chat")
+@staff_member_required(login_url="login")
 def agent_inbox_rows_view(request):
     """HTML fragment view for live queue refreshes via AJAX."""
     return render(request, "_queue_rows_2.html", {
@@ -116,14 +148,14 @@ def agent_inbox_rows_view(request):
 
 
 @never_cache
-@staff_member_required(login_url="chat")
+@staff_member_required(login_url="login")
 def agent_unread_count_view(request):
     """JSON endpoint for agent unread message count."""
     return JsonResponse({"unread": unread_conversation_count(request.user)})
 
 
 @never_cache
-@staff_member_required(login_url="chat")
+@staff_member_required(login_url="login")
 def agent_conversation_view(request, conversation_id):
     """Renders a single conversation thread for the agent panel."""
     conversation = get_object_or_404(Conversation, pk=conversation_id)

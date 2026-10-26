@@ -5,11 +5,91 @@
 
 {% block extra_style %}
     .queue-rows.only-mine .queue-row:not(.is-mine) { display: none; }
+
+    /* Far-Left Navigation Sidebar */
+    .agent-nav-sidebar {
+        width: 240px;
+        background: var(--panel);
+        border-right: 1px solid var(--line);
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        padding: 1.5rem 0;
+    }
+
+    .agent-nav-title {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--muted);
+        letter-spacing: 0.05em;
+        margin: 0 1.5rem 0.75rem;
+    }
+
+    .agent-nav-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1.5rem;
+        color: var(--ink);
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 500;
+        transition: all 0.15s ease;
+        border-left: 3px solid transparent;
+    }
+
+    .agent-nav-item svg {
+        fill: var(--muted);
+        transition: fill 0.15s ease;
+    }
+
+    .agent-nav-item:hover {
+        background: var(--paper);
+    }
+
+    .agent-nav-item.active {
+        background: var(--accent-soft);
+        border-left-color: var(--accent);
+        color: var(--accent);
+    }
+
+    .agent-nav-item.active svg {
+        fill: var(--accent);
+    }
 {% endblock %}
 
 {% block content %}
 <div class="whatsapp-container" id="whatsapp-container">
-    <!-- LEFT SIDEBAR: Conversations Queue -->
+    
+    <!-- FAR LEFT SIDEBAR: Agent Navigation -->
+    <div class="agent-nav-sidebar">
+        <div class="agent-nav-title">Menu</div>
+        
+        <a href="/admin/" class="agent-nav-item">
+            <svg width="20" height="20" viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+            Dashboard
+        </a>
+        <a href="{% url 'agent_inbox' %}" class="agent-nav-item active">
+            <svg width="20" height="20" viewBox="0 0 24 24"><path d="M19 3H4.99c-1.11 0-1.98.89-1.98 2L3 19c0 1.1.88 2 1.99 2H19c1.1 0 2-.9 2-2V5c0-1.11-.9-2-2-2zm0 12h-4c0 1.66-1.35 3-3 3s-3-1.34-3-3H4.99V5H19v10z"/></svg>
+            Inbox
+        </a>
+        <!-- Assuming you add a URL for reports in the future -->
+        <a href="#" class="agent-nav-item">
+            <svg width="20" height="20" viewBox="0 0 24 24"><path d="M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"/></svg>
+            Reports
+        </a>
+        <a href="#" class="agent-nav-item">
+            <svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            User Profile
+        </a>
+        <a href="#" class="agent-nav-item">
+            <svg width="20" height="20" viewBox="0 0 24 24"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
+            Settings
+        </a>
+    </div>
+
+    <!-- MIDDLE COLUMN: Conversations Queue -->
     <div class="whatsapp-sidebar" id="whatsapp-sidebar">
         <div class="sidebar-header">
             <div class="queue-toolbar">

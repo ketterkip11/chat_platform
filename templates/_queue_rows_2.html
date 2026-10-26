@@ -5,7 +5,7 @@
        data-conversation-id="{{ c.pk }}">
         <span class="row-main">
             <span class="customer">
-                {{ c.customer.username }} 
+                {{ c.customer.first_name|default:c.customer.username }}
                 {% if user.is_superuser and c.assigned_to %}
                     <span style="font-size: 0.75rem; color: #64748b; font-weight: normal;">(Assigned: {{ c.assigned_to.username }})</span>
                 {% endif %}

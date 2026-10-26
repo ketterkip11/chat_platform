@@ -2,15 +2,15 @@ import json
 from django import template
 from django.utils import timezone
 from datetime import timedelta
-from django.db.models import Count
-from customercare_chat.models import Conversation, ChatMessage
+from customercare_chat.models import Conversation
 
 register = template.Library()
 
 @register.simple_tag
 def get_dashboard_metrics():
-    today = timezone.now()
-    last_7_days = [today - timedelta(days=i) for i in range(6, -1, -1)]
+    # Anchor to the exact start of today in the active timezone
+    now = timezone.localtime(timezone.now())
+    start_of_today = now.replace(hour=0, minute=0, second=0, microsecond=0)
     
     # KPIs
     total_convos = Conversation.objects.count()
@@ -19,14 +19,19 @@ def get_dashboard_metrics():
     active_chats = Conversation.objects.filter(is_closed=False, assigned_to__isnull=False).count()
     
     # Chart Data: Activity over last 7 days
-    dates_labels = [d.strftime("%b %d") for d in last_7_days]
+    dates_labels = []
     chats_data = []
     
-    for day in last_7_days:
+    for i in range(6, -1, -1):
+        day_start = start_of_today - timedelta(days=i)
+        day_end = day_start + timedelta(days=1)
+        
+        dates_labels.append(day_start.strftime("%b %d"))
+        
+        # Safe range filtering that bypasses SQLite's date extraction limits
         count = Conversation.objects.filter(
-            created_at__year=day.year,
-            created_at__month=day.month,
-            created_at__day=day.day
+            created_at__gte=day_start,
+            created_at__lt=day_end
         ).count()
         chats_data.append(count)
 

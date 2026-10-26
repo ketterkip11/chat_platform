@@ -8,9 +8,16 @@ from .views import (
     agent_unread_count_view,
     chat_view,
     register_view,
+    guest_start_view,
 )
 
 urlpatterns = [
+    # Root URL now points directly to the guest chat intake form
+    path("", guest_start_view, name="guest_start"),
+    
+    # Active chat interface
+    path("chat/", chat_view, name="chat"),
+
     # Custom Login handling role-based redirects
     path("login/", CustomLoginView.as_view(), name="login"),
 
@@ -18,10 +25,7 @@ urlpatterns = [
     path("register/", register_view, name="register"),
 
     # Built-in Django auth views (logout, password reset flows)
-    path("", include("django.contrib.auth.urls")),
-
-    # Customer interface
-    path("chat/", chat_view, name="chat"),
+    path("auth/", include("django.contrib.auth.urls")),
 
     # Agent interface (staff-only)
     path("agent/", agent_inbox_view, name="agent_inbox"),

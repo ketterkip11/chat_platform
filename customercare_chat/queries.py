@@ -13,33 +13,45 @@ from .models import ChatMessage, Conversation, ConversationRead, AgentStatus
 
 def auto_assign_conversation(conversation):
     """
-    Assigns a conversation to an online agent with the fewest active chats 
-    (must be < 4 to receive new assignments, capping at 4).
+    Assigns a conversation using round-robin distribution to an online agent 
+    who has capacity (< 4 active chats) and is NOT a superuser.
     """
     if conversation.assigned_to:
         return  # Already assigned
 
+    from django.contrib.auth import get_user_model
+    from django.db.models import Count, Q, Max, F
     User = get_user_model()
     
-    # Find online agents and count their currently active (open) assigned chats
+    # 1. Must be staff
+    # 2. Cannot be a superuser/admin
+    # 3. Must be actively online
     agents = User.objects.filter(
         is_staff=True,
+        is_superuser=False,
         agent_status__is_online=True
     ).annotate(
+        # Calculate current capacity (must be under 4)
         active_chat_count=Count(
             'assigned_conversations', 
             filter=Q(assigned_conversations__is_closed=False)
-        )
+        ),
+        # Find the timestamp of the most recent chat assigned to this agent
+        last_assigned=Max('assigned_conversations__created_at')
     ).filter(
         active_chat_count__lt=4
-    ).order_by('active_chat_count')
+    ).order_by(
+        # Round Robin: Agents with no previous chats (null) get priority first, 
+        # then agents who have waited the longest since their last assignment.
+        F('last_assigned').asc(nulls_first=True)
+    )
 
     best_agent = agents.first()
     if best_agent:
         conversation.assigned_to = best_agent
         conversation.save(update_fields=['assigned_to'])
-
-
+        
+        
 def assign_oldest_pending_chat(agent):
     """
     Checks if an agent has capacity (< 4 chats). If they do, pulls the oldest 
