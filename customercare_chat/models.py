@@ -112,3 +112,21 @@ class ConversationRead(models.Model):
 
     def __str__(self):
         return f"{self.agent} read #{self.conversation_id} up to {self.last_read_at:%Y-%m-%d %H:%M:%S}"
+
+
+class KnowledgeBaseArticle(models.Model):
+    """
+    Internal digital library/guides for agents. 
+    Only editable by admins via the Django Admin panel.
+    """
+    title = models.CharField(max_length=255)
+    content = models.TextField(help_text="Body of the guide. Supports standard text.")
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+
+    def __str__(self):
+        return self.title

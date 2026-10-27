@@ -6,29 +6,29 @@ from .views import (
     agent_inbox_rows_view,
     agent_inbox_view,
     agent_unread_count_view,
+    agent_dashboard_view,
+    agent_reports_view,
+    agent_profile_view,
+    agent_settings_view,
+    agent_knowledge_base_view,
     chat_view,
     register_view,
     guest_start_view,
 )
 
 urlpatterns = [
-    # Root URL now points directly to the guest chat intake form
     path("", guest_start_view, name="guest_start"),
-    
-    # Active chat interface
     path("chat/", chat_view, name="chat"),
-
-    # Custom Login handling role-based redirects
     path("login/", CustomLoginView.as_view(), name="login"),
-
-    # Public registration for customers
     path("register/", register_view, name="register"),
-
-    # Built-in Django auth views (logout, password reset flows)
     path("auth/", include("django.contrib.auth.urls")),
 
-    # Agent interface (staff-only)
     path("agent/", agent_inbox_view, name="agent_inbox"),
+    path("agent/dashboard/", agent_dashboard_view, name="agent_dashboard"),
+    path("agent/reports/", agent_reports_view, name="agent_reports"),
+    path("agent/knowledge-base/", agent_knowledge_base_view, name="agent_knowledge_base"),
+    path("agent/profile/", agent_profile_view, name="agent_profile"),
+    path("agent/settings/", agent_settings_view, name="agent_settings"),
     path("agent/rows/", agent_inbox_rows_view, name="agent_inbox_rows"),
     path("agent/unread-count/", agent_unread_count_view, name="agent_unread_count"),
     path("agent/<int:conversation_id>/", agent_conversation_view, name="agent_conversation"),

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import ChatMessage, Conversation, AgentStatus
+from .models import ChatMessage, Conversation, AgentStatus, KnowledgeBaseArticle
 
 @admin.register(ChatMessage)
 class ChatMessageAdmin(admin.ModelAdmin):
@@ -29,3 +29,9 @@ class AgentStatusAdmin(admin.ModelAdmin):
     list_filter = ('is_online',)
     search_fields = ('user__username',)
     autocomplete_fields = ('user',)
+
+@admin.register(KnowledgeBaseArticle)
+class KnowledgeBaseArticleAdmin(admin.ModelAdmin):
+    list_display = ('title', 'is_active', 'updated_at')
+    list_filter = ('is_active', 'created_at', 'updated_at')
+    search_fields = ('title', 'content')
