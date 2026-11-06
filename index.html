@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HOFLASI Recon Tool - Complete</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    .cell-input {
+      width: 100%;
+      height: 100%;
+      padding: 0.5rem;
+      background-color: transparent;
+      outline: none;
+      min-width: 120px;
+    }
+    .cell-input:focus {
+      background-color: #F1E7D6; /* Excel Light Beige focus */
+    }
+    .cell-select {
+      width: 100%;
+      height: 100%;
+      padding: 0.5rem;
+      background-color: transparent;
+      outline: none;
+      cursor: pointer;
+      appearance: none;
+      text-align: center;
+      font-weight: bold;
+    }
+    .cell-select:focus {
+      background-color: #F1E7D6;
+    }
+    table th {
+      white-space: normal;
+      min-width: 150px;
+    }
+    .col-small {
+      min-width: 60px !important;
+    }
+  </style>
+</head>
+<body class="bg-[#f8f9fa] text-slate-900 font-sans min-h-screen p-4 md:p-8">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const initialE1_2 = [
+      { id: 1, item: 'Which records may not leave the registry room or the station? (per the station head)', position: '', implication: '' },
+      { id: 2, item: 'May bound registers and volumes be disassembled for scanning? If not, which ones', position: '', implication: '' }
+    ];
+
+    const initialE2 = [
+      { id: 1, dir: 'Land Registration', total: '', basis: '', conf: '', large: '', bound: '', a: '', b: '', c: '', missing: '', digitized: '' },
+      { id: 2, dir: 'Survey & Mapping', total: '', basis: '', conf: '', large: '', bound: '', a: '', b: '', c: '', missing: '', digitized: '' },
+      { id: 3, dir: 'Physical Planning', total: '', basis: '', conf: '', large: '', bound: '', a: '', b: '', c: '', missing: '', digitized: '' },
+      { id: 4, dir: 'Land Administration', total: '', basis: '', conf: '', large: '', bound: '', a: '', b: '', c: '', missing: '', digitized: '' },
+      { id: 5, dir: 'Land Valuation', total: '', basis: '', conf: '', large: '', bound: '', a: '', b: '', c: '', missing: '', digitized: '' },
+      { id: 6, dir: 'Adjudication & Settlement', total: '', basis: '', conf: '', large: '', bound: '', a: '', b: '', c: '', missing: '', digitized: '' },
+      { id: 'TOTAL', dir: 'TOTAL', total: '', basis: '', conf: '', large: '', bound: '', a: '', b: '', c: '', missing: '', digitized: '' }
+    ];
+
+    const initialE3 = [
+      { id: 1, step: 'Reorganization of records', est: 'Are holdings mixed across regimes, registries or sections? Estimated volume to sort, file and catalogue; space to sort and stage; file covers and stationery required', find: '', req: '' },
+      { id: 2, step: 'Manual verification', est: 'Officers available; volume to verify against registers; the daily transaction load the station must keep serving, and the share of files in action at any time', find: '', req: '' },
+      { id: 3, step: 'Office & ICT setup', est: 'Rooms and power available for scanning stations and workstations (from the ICT measurements); what must be provided before equipment can be installed', find: '', req: '' },
+      { id: 4, step: 'Scanning', est: 'Where scanning stations will sit; custody limits from E1.2 (what cannot move, what cannot be disassembled); staging and return-to-shelf arrangement so service continues; oversize and fragile media handling', find: '', req: '' },
+      { id: 5, step: 'Cadastre preparation', est: 'With Survey & Mapping: RIM amendment backlog, controls for georeferencing, block boundary position, reconciliation of area lists with green cards', find: '', req: '' },
+      { id: 6, step: 'Storage & archiving', est: 'Secure storage of paper after scanning; container requirement and siting; strongroom capacity', find: '', req: '' },
+      { id: 7, step: 'Data capture & transmission', est: 'Connectivity for transmitting scans centrally; modality for records that cannot leave the station; integration of usable outputs from earlier initiatives (E1)', find: '', req: '' },
+      { id: 8, step: 'Ardhisasa onboarding', est: 'Station status on the system; parcel numbering and naming issues between directorates that will block onboarding; data already in the system for this station', find: '', req: '' }
+    ];
+
+    const initialE4 = [
+      { id: 1, item: 'Contract staff: reorganization', comp: 'Volume requiring reorganization / 250 / working days', work: '', qty: '', prio: '' },
+      { id: 2, item: 'Officers: verification', comp: 'Volume to verify / 150 / working days', work: '', qty: '', prio: '' },
+      { id: 3, item: 'Contract staff: scanning and data capture support', comp: 'From scanner count and shifts', work: '', qty: '', prio: '' },
+      { id: 4, item: 'High-speed scanners (ADF)', comp: 'A4 loose volume (condition A and B) / 2,500 / working days', work: '', qty: '', prio: '' },
+      { id: 5, item: 'Overhead / book scanners', comp: 'Bound volumes and non-disassemblable registers / 700 / working days', work: '', qty: '', prio: '' },
+      { id: 6, item: 'Large-format scanners (A1/A0)', comp: 'Maps, RIMs and plans / 150 / working days', work: '', qty: '', prio: '' },
+      { id: 7, item: 'Flatbed scanners', comp: 'Fragile category C documents after restoration', work: '', qty: '', prio: '' },
+      { id: 8, item: 'Barcode printers and scanners (sets)', comp: 'One set per scanning line', work: '', qty: '', prio: '' },
+      { id: 9, item: 'Scanning workstations (computers)', comp: 'One per scanner plus QA stations', work: '', qty: '', prio: '' },
+      { id: 10, item: 'Restoration / conservation effort', comp: 'Category C volume; specify materials and skills', work: '', qty: '', prio: '' },
+      { id: 11, item: 'Fabricated containers', comp: 'Post-scan storage shortfall from E3', work: '', qty: '', prio: '' },
+      { id: 12, item: 'File covers, boxes and labels', comp: 'Files with damaged or missing covers, from inventories', work: '', qty: '', prio: '' },
+      { id: 13, item: 'PPE for records handling', comp: 'Staff handling legacy records (dust masks, gloves, aprons), with the ESS assessment', work: '', qty: '', prio: '' }
+    ];
+
+    const TABS = ['Instructions', 'E1. Prior Digitization', 'E2. Volumes & Condition', 'E3. Process Readiness', 'E4. Resource Estimates'];
+
+    const App = () => {
+      const [activeTab, setActiveTab] = useState(TABS[0]);
+      const [isSubmitted, setIsSubmitted] = useState(false);
+      
+      const [meta, setMeta] = useState({ station: '', cluster: '', date: '', officer: '', contact: '' });
+      const [e1_1, setE1_1] = useState([{ id: 1, type: '', init: '', cov: '', loc: '', index: '', usab: '', rem: '' }]);
+      const [e1_2, setE1_2] = useState(initialE1_2);
+      const [e2, setE2] = useState(initialE2);
+      const [e3, setE3] = useState(initialE3);
+      const [e4, setE4] = useState(initialE4);
+
+      const handleMetaChange = (e) => setMeta({ ...meta, [e.target.name]: e.target.value });
+      
+      const addE1Row = () => {
+        setE1_1([...e1_1, { id: e1_1.length + 1, type: '', init: '', cov: '', loc: '', index: '', usab: '', rem: '' }]);
+      };
+
+      const updateTableData = (setter, stateArray, index, field, value) => {
+        const newData = [...stateArray];
+        newData[index][field] = value;
+        setter(newData);
+      };
+
+      const isGlobalFilled = meta.station.trim() !== '' && meta.cluster.trim() !== '' && meta.date.trim() !== '' && meta.officer.trim() !== '' && meta.contact.trim() !== '';
+      const isE1Filled = e1_1.some(r => r.type || r.init || r.cov || r.loc || r.index || r.usab || r.rem) || e1_2.some(r => r.position || r.implication);
+      const isE2Filled = e2.some(r => r.id !== 'TOTAL' && (r.total || r.basis || r.conf || r.large || r.bound || r.a || r.b || r.c || r.missing || r.digitized));
+      const isE3Filled = e3.some(r => r.find || r.req);
+      const isE4Filled = e4.some(r => r.work || r.qty || r.prio);
+
+      const isCurrentTabFilled = () => {
+        if (activeTab === 'Instructions') return true;
+        if (!isGlobalFilled) return false;
+        if (activeTab === 'E1. Prior Digitization') return isE1Filled;
+        if (activeTab === 'E2. Volumes & Condition') return isE2Filled;
+        if (activeTab === 'E3. Process Readiness') return isE3Filled;
+        if (activeTab === 'E4. Resource Estimates') return isE4Filled;
+        return true;
+      };
+
+      const isAllFilled = () => {
+        return isGlobalFilled && isE1Filled && isE2Filled && isE3Filled && isE4Filled;
+      };
+
+      const canSaveAndContinue = isCurrentTabFilled();
+      const canSubmit = isAllFilled();
+
+      const handleNext = () => {
+        if (!canSaveAndContinue) return;
+        const currentIndex = TABS.indexOf(activeTab);
+        if (currentIndex < TABS.length - 1) {
+          setActiveTab(TABS[currentIndex + 1]);
+          window.scrollTo(0, 0);
+        } else {
+          alert("Progress saved! You can review your tabs or click 'Submit Assessment' below when ready.");
+        }
+      };
+
+      const handleSubmit = () => {
+        if (!canSubmit) return;
+        setIsSubmitted(true);
+        window.scrollTo(0, 0);
+      };
+
+      const SVGIcon = ({ name }) => {
+        const icons = {
+          export: <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>,
+          plus: <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>,
+          document: <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>,
+          check: <svg className="w-16 h-16 text-[#3E3A36] mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        };
+        return icons[name] || null;
+      };
+
+      if (isSubmitted) {
+        return (
+          <div className="max-w-[1500px] mx-auto bg-white min-h-screen shadow-xl border-t-[12px] border-[#3E3A36] flex flex-col items-center justify-center p-10 text-center rounded-lg">
+            <SVGIcon name="check" />
+            <h1 className="text-4xl font-extrabold text-black mb-4">Assessment Submitted Successfully</h1>
+            <p className="text-lg text-slate-600 mb-10 max-w-2xl">
+              Thank you. The reconnaissance and needs assessment data for <span className="font-bold text-[#3E3A36]">{meta.station}</span> has been completely recorded. You may now export the finalized workbook.
+            </p>
+            <button className="bg-[#6B4F2E] text-white px-8 py-4 rounded font-bold hover:opacity-90 transition shadow-lg flex items-center text-lg">
+              <SVGIcon name="export" /> Export Complete Workbook
+            </button>
+            <button onClick={() => setIsSubmitted(false)} className="mt-8 text-[#6B4F2E] font-bold hover:underline text-sm">
+              Return to editing
+            </button>
+          </div>
+        );
+      }
+
+      return (
+        <div className="max-w-[1500px] mx-auto bg-white min-h-screen shadow-xl border-t-[12px] border-[#3E3A36] flex flex-col rounded-b-lg">
+          
+          {/* Header Section */}
+          <div className="p-6 md:p-8 border-b-2 border-[#3E3A36] bg-white">
+            <h1 className="text-3xl font-extrabold text-[#3E3A36] tracking-tight">HOFLASI PROJECT</h1>
+            <h2 className="text-lg text-[#6B4F2E] font-bold uppercase mb-6">Reconnaissance and Needs Assessment of Land Registries</h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 bg-[#F1E7D6] p-5 border border-[#E9E4DD] rounded-lg shadow-sm">
+              <div>
+                <label className="block text-xs font-bold text-[#3E3A36] mb-1 uppercase tracking-wider">
+                  Station <span className="text-red-600 text-sm">*</span>
+                </label>
+                <input type="text" name="station" value={meta.station} onChange={handleMetaChange} className="w-full border border-gray-300 p-2 rounded focus:border-[#6B4F2E] focus:ring-1 focus:ring-[#6B4F2E] outline-none text-sm bg-white" placeholder="Required" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-[#3E3A36] mb-1 uppercase tracking-wider">
+                  Cluster <span className="text-red-600 text-sm">*</span>
+                </label>
+                <input type="text" name="cluster" value={meta.cluster} onChange={handleMetaChange} className="w-full border border-gray-300 p-2 rounded focus:border-[#6B4F2E] focus:ring-1 focus:ring-[#6B4F2E] outline-none text-sm bg-white" placeholder="Required" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-[#3E3A36] mb-1 uppercase tracking-wider">
+                  Date of Assessment <span className="text-red-600 text-sm">*</span>
+                </label>
+                <input type="date" name="date" value={meta.date} onChange={handleMetaChange} className="w-full border border-gray-300 p-2 rounded focus:border-[#6B4F2E] focus:ring-1 focus:ring-[#6B4F2E] outline-none text-sm bg-white" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-[#3E3A36] mb-1 uppercase tracking-wider">
+                  Officer(s) Completing <span className="text-red-600 text-sm">*</span>
+                </label>
+                <input type="text" name="officer" value={meta.officer} onChange={handleMetaChange} className="w-full border border-gray-300 p-2 rounded focus:border-[#6B4F2E] focus:ring-1 focus:ring-[#6B4F2E] outline-none text-sm bg-white" placeholder="Name & Designation" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-[#3E3A36] mb-1 uppercase tracking-wider">
+                  Contact <span className="text-red-600 text-sm">*</span>
+                </label>
+                <input type="text" name="contact" value={meta.contact} onChange={handleMetaChange} className="w-full border border-gray-300 p-2 rounded focus:border-[#6B4F2E] focus:ring-1 focus:ring-[#6B4F2E] outline-none text-sm bg-white" placeholder="Phone/Email" />
+              </div>
+            </div>
+          </div>
+
+          {/* Navigation Tabs */}
+          <div className="bg-[#E9E4DD] border-b border-gray-300 flex overflow-x-auto">
+            {TABS.map(tab => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-6 py-4 text-sm font-bold whitespace-nowrap border-r border-gray-300 transition-colors ${activeTab === tab ? 'bg-white text-[#3E3A36] border-b-2 border-b-[#3E3A36]' : 'text-slate-600 hover:bg-white/50'}`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+
+          {/* Tab Content */}
+          <div className="p-6 md:p-8 flex-grow bg-white overflow-hidden flex flex-col">
+            
+            {activeTab === 'Instructions' && (
+              <div className="max-w-4xl mx-auto w-full">
+                <div className="border-b-2 border-[#3E3A36] pb-4 mb-6">
+                  <h3 className="text-2xl font-bold text-[#3E3A36] flex items-center"><SVGIcon name="document" /> NLIMS DIRECTORATE TOOL: TEMPLATE FOR TWG ADAPTATION</h3>
+                  <p className="text-[#6B4F2E] font-bold mt-1 uppercase">One workbook per station</p>
+                </div>
+                <div className="space-y-6 text-slate-800 leading-relaxed pb-10">
+                  <p><strong className="text-[#3E3A36]">PURPOSE:</strong> NLIMS assesses the digitization requirements of each station in liaison with the other directorates. E1 records prior digitization, E2 summarizes volumes and condition from the directorate inventories, E3 assesses readiness per process step, E4 computes resource estimates. TWG members adapt this template for their directorates using the Adaptation Map sheet.</p>
+                  <p><strong className="text-[#3E3A36]">COUNTING.</strong> Every figure carries its basis and a confidence rating: H = counted or from a maintained register; M = computed (volumes x average folios, area lists); L = sampled estimate. Bases: green card counts; register volumes x average folios per volume (average 3 volumes); area lists; presentation books; shelf sampling (count files in one metre of shelving, multiply by total shelf metres, average at least 3 shelves).</p>
+                  <p><strong className="text-[#3E3A36]">REGIME.</strong> Split all counts by registration regime (green cards and RIMs under the repealed RLA; deed plans, volumes and folios under the repealed GLA/LTA; sectional properties; converted parcels) and by registration section or block.</p>
+                  <p><strong className="text-[#3E3A36]">CONDITION</strong> (percentages of the count, totalling 100): A = sound, scan as-is; B = minor repair first (dust, folds, detached covers, loose stitching); C = fragile or damaged, requiring restoration or special handling (brittle, torn, faded, water-damaged; linen or mylar maps). Record separately the share missing or under reconstruction, and the share in action (with officers, in court, at the Land Control Board) on a given day.</p>
+                  <p><strong className="text-[#3E3A36]">PRIOR DIGITIZATION.</strong> Complete E1 before E2 to E4. Record each earlier initiative: what was digitized, coverage, where the outputs are (EDMS, external drives, DVDs, Ardhisasa), and whether they are indexed and usable.</p>
+                  <p><strong className="text-[#3E3A36]">CUSTODY.</strong> Establish with the station head which records may not leave the registry or station, and which bound volumes may not be disassembled, before proposing any scanning or movement arrangement.</p>
+                  <p><strong className="text-[#3E3A36]">PRIORITIES:</strong> P1 = required before digitization can start; P2 = required within the first quarter; P3 = desirable.</p>
+                  <p><strong className="text-[#3E3A36]">ADAPTATION.</strong> Retain the identification block, the section pattern and the codes above. Replace checklist items and estimate lines with the directorate's own, one item per row, answerable by observation at the station. Do not collect what another directorate's tool collects.</p>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'E1. Prior Digitization' && (
+              <div className="flex flex-col h-full">
+                <h3 className="text-lg font-bold text-white bg-[#6B4F2E] p-3 rounded-t-md">
+                  E1.1 EARLIER DIGITIZATION INITIATIVES AT THIS STATION <span className="font-normal text-sm text-[#F1E7D6] block mt-1">(one row per initiative or record type digitized)</span>
+                </h3>
+                <div className="overflow-x-auto border-x border-b border-gray-300 rounded-b-md mb-8 shadow-sm">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-[#E9E4DD] border-b border-gray-300 text-xs">
+                        <th className="p-3 border-r border-gray-300 col-small">No.</th>
+                        <th className="p-3 border-r border-gray-300">Record type / directorate</th>
+                        <th className="p-3 border-r border-gray-300">Initiative and year <br/><span className="font-normal text-slate-600">(e.g. RRI, advance team, Ardhisasa onboarding)</span></th>
+                        <th className="p-3 border-r border-gray-300">Coverage <br/><span className="font-normal text-slate-600">(sections/blocks done, count or %)</span></th>
+                        <th className="p-3 border-r border-gray-300">Where the outputs are <br/><span className="font-normal text-slate-600">(EDMS, external drives, DVDs, Ardhisasa)</span></th>
+                        <th className="p-3 border-r border-gray-300">Indexed and searchable? <br/><span className="font-normal text-slate-600">(Yes/No/Partly)</span></th>
+                        <th className="p-3 border-r border-gray-300">Usable for Ardhisasa? <br/><span className="font-normal text-slate-600">(Yes/No, why)</span></th>
+                        <th className="p-3">Work remaining to finalize</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {e1_1.map((row, i) => (
+                        <tr key={i} className="border-b border-gray-200">
+                          <td className="p-2 border-r border-gray-300 text-center font-bold bg-white">{row.id}</td>
+                          <td className="border-r border-gray-300 p-0"><input type="text" className="cell-input" value={row.type} onChange={(e) => updateTableData(setE1_1, e1_1, i, 'type', e.target.value)} /></td>
+                          <td className="border-r border-gray-300 p-0"><input type="text" className="cell-input" value={row.init} onChange={(e) => updateTableData(setE1_1, e1_1, i, 'init', e.target.value)} /></td>
+                          <td className="border-r border-gray-300 p-0"><input type="text" className="cell-input" value={row.cov} onChange={(e) => updateTableData(setE1_1, e1_1, i, 'cov', e.target.value)} /></td>
+                          <td className="border-r border-gray-300 p-0"><input type="text" className="cell-input" value={row.loc} onChange={(e) => updateTableData(setE1_1, e1_1, i, 'loc', e.target.value)} /></td>
+                          <td className="border-r border-gray-300 p-0"><input type="text" className="cell-input" value={row.index} onChange={(e) => updateTableData(setE1_1, e1_1, i, 'index', e.target.value)} /></td>
+                          <td className="border-r border-gray-300 p-0"><input type="text" className="cell-input" value={row.usab} onChange={(e) => updateTableData(setE1_1, e1_1, i, 'usab', e.target.value)} /></td>
+                          <td className="p-0"><input type="text" className="cell-input" value={row.rem} onChange={(e) => updateTableData(setE1_1, e1_1, i, 'rem', e.target.value)} /></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <button onClick={addE1Row} className="text-[#6B4F2E] font-bold flex items-center hover:text-[#3E3A36] self-start mb-10"><SVGIcon name="plus" /> Add Row</button>
+
+                <h3 className="text-lg font-bold text-white bg-[#6B4F2E] p-3 rounded-t-md">E1.2 CUSTODY AND HANDLING POSITION</h3>
+                <div className="overflow-x-auto border-x border-b border-gray-300 rounded-b-md shadow-sm">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-[#E9E4DD] border-b border-gray-300 text-sm">
+                        <th className="p-3 border-r border-gray-300 col-small">No.</th>
+                        <th className="p-3 border-r border-gray-300 w-1/3">Item</th>
+                        <th className="p-3 border-r border-gray-300 w-1/3">Position established</th>
+                        <th className="p-3 w-1/3">Implication for the exercise</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {e1_2.map((row, i) => (
+                        <tr key={i} className="border-b border-gray-200">
+                          <td className="p-3 border-r border-gray-300 text-center font-bold">{row.id}</td>
+                          <td className="p-3 border-r border-gray-300 text-sm font-semibold">{row.item}</td>
+                          <td className="border-r border-gray-300 p-0"><textarea className="cell-input resize-none h-16" value={row.position} onChange={(e) => updateTableData(setE1_2, e1_2, i, 'position', e.target.value)}></textarea></td>
+                          <td className="p-0"><textarea className="cell-input resize-none h-16" value={row.implication} onChange={(e) => updateTableData(setE1_2, e1_2, i, 'implication', e.target.value)}></textarea></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'E2. Volumes & Condition' && (
+              <div className="flex flex-col h-full">
+                <div className="bg-[#E9E4DD] p-3 rounded text-sm text-[#3E3A36] mb-4 border border-gray-300 font-medium">
+                  Confidence: H = counted or maintained register; M = computed (volumes x average folios, area lists); L = sampled estimate. A/B/C percentages total 100. Missing and in-action shares are recorded separately.
+                </div>
+                <div className="overflow-x-auto border border-gray-300 rounded-md shadow-sm">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-[#6B4F2E] text-white text-xs text-center">
+                        <th className="p-3 border-r border-white/20 col-small">No.</th>
+                        <th className="p-3 border-r border-white/20 text-left">Directorate</th>
+                        <th className="p-3 border-r border-white/20">Total documents</th>
+                        <th className="p-3 border-r border-white/20">Basis of count</th>
+                        <th className="p-3 border-r border-white/20">Confidence<br/><span className="font-normal text-[#F1E7D6]">(H/M/L)</span></th>
+                        <th className="p-3 border-r border-white/20">% maps</th>
+                        <th className="p-3 border-r border-white/20">% bound</th>
+                        <th className="p-3 border-r border-white/20">% A<br/><span className="font-normal text-[#F1E7D6]">(scan as-is)</span></th>
+                        <th className="p-3 border-r border-white/20">% B<br/><span className="font-normal text-[#F1E7D6]">(minor repair)</span></th>
+                        <th className="p-3 border-r border-white/20">% C<br/><span className="font-normal text-[#F1E7D6]">(restoration)</span></th>
+                        <th className="p-3 border-r border-white/20">% missing</th>
+                        <th className="p-3">% digitized<br/><span className="font-normal text-[#F1E7D6]">(from E1)</span></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {e2.map((row, i) => (
+                        <tr key={i} className={`border-b border-gray-200 ${row.id === 'TOTAL' ? 'bg-[#F2F2F2] font-bold' : ''}`}>
+                          <td className="p-2 border-r border-gray-300 text-center font-bold">{row.id}</td>
+                          <td className="p-2 border-r border-gray-300 text-sm font-semibold">{row.dir}</td>
+                          <td className="border-r border-gray-300 p-0"><input type="text" className="cell-input" value={row.total} onChange={(e) => updateTableData(setE2, e2, i, 'total', e.target.value)} /></td>
+                          <td className="border-r border-gray-300 p-0"><input type="text" className="cell-input" value={row.basis} onChange={(e) => updateTableData(setE2, e2, i, 'basis', e.target.value)} /></td>
+                          <td className="border-r border-gray-300 p-0"><input type="text" className="cell-input text-center" value={row.conf} onChange={(e) => updateTableData(setE2, e2, i, 'conf', e.target.value)} /></td>
+                          <td className="border-r border-gray-300 p-0"><input type="text" className="cell-input text-center" value={row.large} onChange={(e) => updateTableData(setE2, e2, i, 'large', e.target.value)} /></td>
+                          <td className="border-r border-gray-300 p-0"><input type="text" className="cell-input text-center" value={row.bound} onChange={(e) => updateTableData(setE2, e2, i, 'bound', e.target.value)} /></td>
+                          <td className="border-r border-gray-300 p-0"><input type="text" className="cell-input text-center" value={row.a} onChange={(e) => updateTableData(setE2, e2, i, 'a', e.target.value)} /></td>
+                          <td className="border-r border-gray-300 p-0"><input type="text" className="cell-input text-center" value={row.b} onChange={(e) => updateTableData(setE2, e2, i, 'b', e.target.value)} /></td>
+                          <td className="border-r border-gray-300 p-0"><input type="text" className="cell-input text-center" value={row.c} onChange={(e) => updateTableData(setE2, e2, i, 'c', e.target.value)} /></td>
+                          <td className="border-r border-gray-300 p-0"><input type="text" className="cell-input text-center" value={row.missing} onChange={(e) => updateTableData(setE2, e2, i, 'missing', e.target.value)} /></td>
+                          <td className="p-0"><input type="text" className="cell-input text-center" value={row.digitized} onChange={(e) => updateTableData(setE2, e2, i, 'digitized', e.target.value)} /></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'E3. Process Readiness' && (
+              <div className="flex flex-col h-full">
+                <div className="overflow-x-auto border border-gray-300 rounded-md shadow-sm">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-[#6B4F2E] text-white text-sm">
+                        <th className="p-3 border-r border-white/20 col-small">No.</th>
+                        <th className="p-3 border-r border-white/20">Process step</th>
+                        <th className="p-3 border-r border-white/20">What to establish</th>
+                        <th className="p-3 border-r border-white/20 w-1/4">Findings</th>
+                        <th className="p-3 w-1/4">Requirements arising</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {e3.map((row, i) => (
+                        <tr key={i} className="border-b border-gray-200">
+                          <td className="p-3 border-r border-gray-300 text-center font-bold">{row.id}</td>
+                          <td className="p-3 border-r border-gray-300 text-sm font-bold">{row.step}</td>
+                          <td className="p-3 border-r border-gray-300 text-xs text-slate-700 leading-relaxed min-w-[250px]">{row.est}</td>
+                          <td className="border-r border-gray-300 p-0"><textarea className="cell-input resize-none h-20 text-sm" value={row.find} onChange={(e) => updateTableData(setE3, e3, i, 'find', e.target.value)}></textarea></td>
+                          <td className="p-0"><textarea className="cell-input resize-none h-20 text-sm" value={row.req} onChange={(e) => updateTableData(setE3, e3, i, 'req', e.target.value)}></textarea></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'E4. Resource Estimates' && (
+              <div className="flex flex-col h-full">
+                <div className="bg-[#E9E4DD] p-3 rounded text-sm text-[#3E3A36] mb-4 border border-gray-300 font-medium">
+                  Rates: reorganization 250 files per contract worker per day; verification 150 files per officer per day; high-speed scanning 2,500 images per scanner per day; overhead/book 700 pages per day; large-format 150 sheets per day. Quantity = volume / rate / working days.
+                </div>
+                <div className="overflow-x-auto border border-gray-300 rounded-md shadow-sm">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-[#6B4F2E] text-white text-sm">
+                        <th className="p-3 border-r border-white/20 col-small">No.</th>
+                        <th className="p-3 border-r border-white/20 w-56">Item</th>
+                        <th className="p-3 border-r border-white/20">How to compute</th>
+                        <th className="p-3 border-r border-white/20">Working <br/><span className="font-normal text-[#F1E7D6]">(show figures used)</span></th>
+                        <th className="p-3 border-r border-white/20 w-32">Estimated quantity</th>
+                        <th className="p-3 w-32">Priority <br/><span className="font-normal text-[#F1E7D6]">(P1/P2/P3)</span></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {e4.map((row, i) => (
+                        <tr key={i} className="border-b border-gray-200">
+                          <td className="p-3 border-r border-gray-300 text-center font-bold">{row.id}</td>
+                          <td className="p-3 border-r border-gray-300 text-sm font-bold">{row.item}</td>
+                          <td className="p-3 border-r border-gray-300 text-xs text-slate-700">{row.comp}</td>
+                          <td className="border-r border-gray-300 p-0"><textarea className="cell-input resize-none h-16 text-sm" value={row.work} onChange={(e) => updateTableData(setE4, e4, i, 'work', e.target.value)}></textarea></td>
+                          <td className="border-r border-gray-300 p-0"><input type="text" className="cell-input text-center font-bold text-[#6B4F2E]" value={row.qty} onChange={(e) => updateTableData(setE4, e4, i, 'qty', e.target.value)} /></td>
+                          <td className="p-0 bg-white">
+                            <select 
+                              className="cell-select text-[#3E3A36]" 
+                              value={row.prio} 
+                              onChange={(e) => updateTableData(setE4, e4, i, 'prio', e.target.value)}
+                            >
+                              <option value="" disabled hidden>Select...</option>
+                              <option value="P1">P1</option>
+                              <option value="P2">P2</option>
+                              <option value="P3">P3</option>
+                            </select>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+            
+            {/* Dynamic Footer for Navigation and Submission - HIDES on Instructions Tab */}
+            {activeTab !== 'Instructions' && (
+              <div className="mt-8 pt-6 border-t border-gray-300 flex flex-col items-end gap-3">
+                <div className="w-full flex flex-col items-end">
+                  <button 
+                    onClick={handleNext} 
+                    disabled={!canSaveAndContinue}
+                    className={`px-8 py-3 rounded font-bold transition shadow w-full md:w-64 ${canSaveAndContinue ? 'bg-[#3E3A36] text-white hover:bg-black' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                  >
+                    Save & Continue
+                  </button>
+                  {!canSaveAndContinue && (
+                    <p className="text-red-500 text-xs mt-1 mr-1">Fill out global metadata (*) and at least one field on this tab.</p>
+                  )}
+                </div>
+                
+                {activeTab === 'E4. Resource Estimates' && (
+                  <div className="w-full flex flex-col items-end">
+                    <button 
+                      onClick={handleSubmit} 
+                      disabled={!canSubmit}
+                      className={`px-10 py-3 rounded font-bold transition shadow-lg text-lg w-full md:w-64 mt-2 ${canSubmit ? 'bg-[#6B4F2E] text-white hover:opacity-90' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                    >
+                      Submit Assessment
+                    </button>
+                    {!canSubmit && canSaveAndContinue && (
+                      <p className="text-red-500 text-xs mt-1 mr-1">Cannot submit. Ensure data is entered on all previous tabs (E1, E2, E3).</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+          </div>
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

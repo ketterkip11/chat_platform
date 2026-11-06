@@ -4,7 +4,6 @@
 {% block extrastyle %}
 {{ block.super }}
 <style>
-    /* Theme overrides for Blue, Black, White */
     .info-box {
         box-shadow: 0 4px 6px rgba(15, 23, 42, 0.05);
         border: 1px solid #e2e8f0;
@@ -12,15 +11,84 @@
         background: #ffffff;
     }
     .info-box-icon { border-radius: 0.5rem 0 0 0.5rem; }
-    .bg-primary { background-color: #2563eb !important; color: #fff; } /* Accent Blue */
-    .bg-dark { background-color: #0f172a !important; color: #fff; }    /* Slate Black */
-    .bg-success { background-color: #10b981 !important; color: #fff; } /* Success Green */
-    .bg-danger { background-color: #dc2626 !important; color: #fff; }  /* Danger Red */
+    .bg-primary { background-color: #2563eb !important; color: #fff; } 
+    .bg-dark { background-color: #0f172a !important; color: #fff; }    
+    .bg-success { background-color: #10b981 !important; color: #fff; } 
+    .bg-danger { background-color: #dc2626 !important; color: #fff; }  
     
     .card-custom {
         border-radius: 0.75rem;
         border: 1px solid #e2e8f0;
         box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+    }
+
+    .report-controls {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.75rem;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        align-items: flex-end;
+        box-shadow: 0 4px 6px rgba(15, 23, 42, 0.02);
+    }
+
+    .report-controls .form-group {
+        margin-bottom: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .report-controls label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #64748b;
+        margin-bottom: 0.4rem;
+    }
+
+    .report-controls input, .report-controls select {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #cbd5e1;
+        border-radius: 0.5rem;
+        outline: none;
+        color: #0f172a;
+        font-family: inherit;
+        background-color: #ffffff;
+    }
+
+    .report-controls input:focus, .report-controls select:focus {
+        border-color: #2563eb;
+    }
+
+    .btn-generate {
+        background: #2563eb;
+        color: #ffffff;
+        padding: 0.55rem 1.25rem;
+        border: none;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+    }
+
+    .btn-generate:hover {
+        background: #1d4ed8;
+    }
+    
+    .btn-excel { background: #10b981; }
+    .btn-excel:hover { background: #059669; }
+    
+    .btn-pdf { background: #0f172a; }
+    .btn-pdf:hover { background: #020617; }
+
+    /* Make the page look perfect when 'Export PDF' (Print) is triggered */
+    @media print {
+        .main-header, .main-sidebar, .report-controls, .main-footer { display: none !important; }
+        .content-wrapper { margin-left: 0 !important; width: 100% !important; background: white !important; padding: 0 !important; }
+        .info-box, .card-custom { border: 1px solid #e2e8f0 !important; box-shadow: none !important; page-break-inside: avoid; }
+        body { background: white !important; }
     }
 </style>
 {% endblock %}
@@ -29,12 +97,36 @@
 {% get_dashboard_metrics as metrics %}
 
 <div class="content-fluid">
-    <div class="row mb-4">
-        <div class="col-12">
-            <h4 class="mb-3" style="color: #0f172a; font-weight: 700;">Performance Overview</h4>
+    <!-- Reporting Controls -->
+    <form method="GET" class="report-controls" id="filter-form">
+        <div class="form-group">
+            <label>Start Date</label>
+            <input type="date" name="start_date" id="start_date" value="{{ metrics.start_date }}" required>
         </div>
-        
-        <!-- KPI Cards -->
+        <div class="form-group">
+            <label>End Date</label>
+            <input type="date" name="end_date" id="end_date" value="{{ metrics.end_date }}" required>
+        </div>
+        <div class="form-group">
+            <label>Filter by Agent</label>
+            <select name="agent_id" id="agent_id">
+                <option value="all" {% if metrics.selected_agent == 'all' %}selected{% endif %}>All Agents</option>
+                {% for agent in metrics.all_agents %}
+                    <option value="{{ agent.id }}" {% if metrics.selected_agent == agent.id|stringformat:"s" %}selected{% endif %}>
+                        {{ agent.first_name|default:agent.username }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group" style="display: flex; gap: 0.5rem; align-items: flex-end; flex-direction: row;">
+            <button type="submit" class="btn-generate">Apply Filter</button>
+            <button type="button" class="btn-generate btn-excel" onclick="exportExcel()">Download Excel</button>
+            <button type="button" class="btn-generate btn-pdf" onclick="window.print()">Export PDF</button>
+        </div>
+    </form>
+
+    <div class="row mb-4">
+        <!-- KPI Cards (Dynamically populated from backend tag) -->
         <div class="col-12 col-sm-6 col-md-3">
             <div class="info-box">
                 <span class="info-box-icon bg-primary elevation-1"><i class="fas fa-comments"></i></span>
@@ -76,45 +168,32 @@
         </div>
     </div>
 
-    <!-- Analytics Chart -->
+    <!-- Analytics Charts -->
     <div class="row">
-        <div class="col-lg-8">
+        <!-- Agent Performance Chart -->
+        <div class="col-lg-6">
             <div class="card card-custom">
                 <div class="card-header border-0 bg-white">
-                    <h3 class="card-title" style="font-weight: 600; color: #0f172a;">Conversation Volume (Last 7 Days)</h3>
+                    <h3 class="card-title" style="font-weight: 600; color: #0f172a;">Agent Performance Overview</h3>
                 </div>
                 <div class="card-body">
-                    <div class="position-relative mb-4">
-                        <canvas id="volumeChart" height="300"></canvas>
+                    <div class="position-relative mb-4" style="height: 350px;">
+                        <canvas id="agentStatsChart"></canvas>
                     </div>
                 </div>
             </div>
         </div>
         
-        <!-- Standard Jazzmin Quick Links -->
-        <div class="col-lg-4">
+        <!-- Timeline Volume Chart -->
+        <div class="col-lg-6">
             <div class="card card-custom">
                 <div class="card-header border-0 bg-white">
-                    <h3 class="card-title" style="font-weight: 600; color: #0f172a;">Quick Actions</h3>
+                    <h3 class="card-title" style="font-weight: 600; color: #0f172a;">Conversation Timeline</h3>
                 </div>
-                <div class="card-body p-0">
-                    <ul class="nav nav-pills flex-column">
-                        <li class="nav-item">
-                            <a href="{% url 'admin:customercare_chat_conversation_changelist' %}" class="nav-link text-dark">
-                                <i class="fas fa-comments text-primary mr-2"></i> Manage Conversations
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{% url 'admin:auth_user_changelist' %}" class="nav-link text-dark">
-                                <i class="fas fa-users text-primary mr-2"></i> Manage Users & Agents
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{% url 'agent_inbox' %}" class="nav-link text-dark" target="_blank">
-                                <i class="fas fa-external-link-alt text-primary mr-2"></i> Open Live Agent Console
-                            </a>
-                        </li>
-                    </ul>
+                <div class="card-body">
+                    <div class="position-relative mb-4" style="height: 350px;">
+                        <canvas id="timelineChart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
@@ -123,17 +202,70 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    function exportExcel() {
+        const start = document.getElementById('start_date').value;
+        const end = document.getElementById('end_date').value;
+        const agent = document.getElementById('agent_id').value;
+        window.location.href = `{% url 'export_reports' %}?start_date=${start}&end_date=${end}&agent_id=${agent}`;
+    }
+
     document.addEventListener("DOMContentLoaded", function() {
-        const ctx = document.getElementById('volumeChart').getContext('2d');
-        new Chart(ctx, {
+        // Render Agent Breakdown Chart (Dynamically populated)
+        const agentCtx = document.getElementById('agentStatsChart').getContext('2d');
+        new Chart(agentCtx, {
             type: 'bar',
+            data: {
+                labels: {{ metrics.agent_chart.names|safe }},
+                datasets: [
+                    {
+                        label: 'Total Handled',
+                        backgroundColor: '#64748b',
+                        data: {{ metrics.agent_chart.totals|safe }},
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'Active Chats',
+                        backgroundColor: '#10b981',
+                        data: {{ metrics.agent_chart.active|safe }},
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'Closed Chats',
+                        backgroundColor: '#2563eb',
+                        data: {{ metrics.agent_chart.closed|safe }},
+                        borderRadius: 4
+                    }
+                ]
+            },
+            options: {
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: { mode: 'index', intersect: false }
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { beginAtZero: true, grid: { color: "#e2e8f0" } }
+                }
+            }
+        });
+
+        // Render Timeline Volume Chart (Dynamically populated)
+        const timelineCtx = document.getElementById('timelineChart').getContext('2d');
+        new Chart(timelineCtx, {
+            type: 'line',
             data: {
                 labels: {{ metrics.chart.labels|safe }},
                 datasets: [{
                     label: 'New Conversations',
-                    backgroundColor: '#2563eb', // Royal Blue Theme
                     borderColor: '#2563eb',
-                    borderRadius: 4,
+                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                    borderWidth: 3,
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#2563eb',
+                    pointRadius: 4,
+                    fill: true,
+                    tension: 0.3,
                     data: {{ metrics.chart.data|safe }}
                 }]
             },
@@ -142,7 +274,7 @@
                 plugins: { legend: { display: false } },
                 scales: {
                     x: { grid: { display: false } },
-                    y: { beginAtZero: true, grid: { borderDash: [2, 4], color: "#e2e8f0" } }
+                    y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: "#e2e8f0" } }
                 }
             }
         });

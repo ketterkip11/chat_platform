@@ -18,9 +18,14 @@ class AgentStatus(models.Model):
 class Conversation(models.Model):
     """
     A single chat thread between a customer and an agent.
-    Messages are grouped under this so a customer's history isn't one
-    flat, unlinked list.
     """
+    class Labels(models.TextChoices):
+        GENERAL = "general", "General"
+        SUPPORT = "support", "Support"
+        SALES = "sales", "Sales"
+        URGENT = "urgent", "Urgent"
+        BUG = "bug", "Bug"
+
     customer = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -32,6 +37,11 @@ class Conversation(models.Model):
         null=True,
         blank=True,
         related_name="assigned_conversations",
+    )
+    label = models.CharField(
+        max_length=20,
+        choices=Labels.choices,
+        default=Labels.GENERAL,
     )
     created_at = models.DateTimeField(auto_now_add=True)
     is_closed = models.BooleanField(default=False)

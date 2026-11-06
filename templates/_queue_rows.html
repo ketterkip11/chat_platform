@@ -2,22 +2,44 @@
     {% if user.is_superuser or c.assigned_to == user or not c.assigned_to %}
     <a class="queue-row {% if c.unread_count %}unread{% endif %} {% if c.assigned_to == user %}is-mine{% endif %}"
        href="{% url 'agent_conversation' c.pk %}"
-       data-conversation-id="{{ c.pk }}">
-        <span class="row-main">
-            <span class="customer">
+       data-conversation-id="{{ c.pk }}"
+       data-label="{{ c.label }}">
+        
+        <div class="list-top">
+            <span class="customer-info">
                 {{ c.customer.first_name|default:c.customer.username }}
-                {% if user.is_superuser and c.assigned_to %}
-                    <span style="font-size: 0.75rem; color: #64748b; font-weight: normal;">(Assigned: {{ c.assigned_to.username }})</span>
-                {% endif %}
+                {% if c.unread_count %}<span class="badge" title="Unread messages">{{ c.unread_count }}</span>{% endif %}
             </span>
-            <span class="preview">{% if c.last_message_sender_type == 'agent' %}Agent: {% endif %}{{ c.last_message_text|truncatechars:80 }}</span>
-        </span>
-        <span class="row-side">
-            <span class="meta">{{ c.last_message_at|timesince }} ago</span>
-            {% if c.unread_count %}<span class="badge" title="Unread messages">{{ c.unread_count }}</span>{% endif %}
-        </span>
+            <span class="meta-time">{{ c.last_message_at|date:"M d, Y \\a\\t P" }}</span>
+        </div>
+
+        <div class="list-bottom">
+            <span class="preview">
+                {% if c.last_message_sender_type == 'agent' %}You: {% endif %}{{ c.last_message_text|truncatechars:60 }}
+            </span>
+            
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                {% if user.is_superuser %}
+                    <span class="avatar" title="Assigned to {{ c.assigned_to.first_name|default:c.assigned_to.username }}">
+                        {% if c.assigned_to %}
+                            {{ c.assigned_to.username|make_list|first }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </span>
+                {% endif %}
+                
+                <span class="status-pill label-{{ c.label }}">{{ c.get_label_display }}</span>
+                
+                {% if c.is_closed %}
+                    <span class="status-pill closed">Closed</span>
+                {% else %}
+                    <span class="status-pill open">Open</span>
+                {% endif %}
+            </div>
+        </div>
     </a>
     {% endif %}
 {% empty %}
-    <p class="empty-state" style="padding: 2rem 1rem;">No conversations yet. New chats will appear here automatically.</p>
+    <p class="empty-state" style="padding: 2rem 1rem;">No conversations match this filter.</p>
 {% endfor %}

@@ -6,22 +6,23 @@
     <title>{% block title %}Support Chat{% endblock %}</title>
     <style>
         :root {
-            /* Theme: Blue, Black, White */
-            --ink: #0f172a;            /* Deep Slate / Black */
-            --paper: #f8fafc;          /* Off-white page background */
-            --panel: #ffffff;          /* Pure White */
-            --sidebar-bg: #ffffff;     /* Sidebar background */
-            --line: #e2e8f0;           /* Subtle border line */
-            --muted: #64748b;          /* Muted text */
-            --accent: #2563eb;         /* Royal Blue accent */
-            --accent-hover: #1d4ed8;   /* Darker blue hover state */
-            --accent-soft: #eff6ff;    /* Soft blue tint */
-            --danger: #dc2626;         /* Red action color */
+            /* Theme: Ardhisasa Deep Forest Green, Light Beige, White */
+            --ink: #1e293b;            
+            --paper: #f1f4ed;          /* Light beige page background */
+            --panel: #ffffff;          /* Pure White for cards/panels */
+            --sidebar-bg: #ffffff;     
+            --line: #e2e8f0;           
+            --muted: #64748b;          
+            --accent: #314833;         /* Deep Forest Green */
+            --accent-hover: #223324;   /* Darker shade for hover states */
+            --accent-soft: #e7ece8;    /* Very light green tint for active highlights */
+            --danger: #ef4444;         
+            --warning: #f59e0b;
 
-            --bubble-mine: #2563eb;       /* Sent message background */
-            --bubble-mine-ink: #ffffff;   /* Sent message text */
-            --bubble-theirs: #f1f5f9;     /* Received message background */
-            --bubble-theirs-ink: #0f172a; /* Received message text */
+            --bubble-mine: #314833;       
+            --bubble-mine-ink: #ffffff;   
+            --bubble-theirs: #ffffff;     
+            --bubble-theirs-ink: #1e293b; 
         }
 
         * { box-sizing: border-box; }
@@ -41,17 +42,17 @@
             flex-direction: column;
         }
 
-        /* Nav Header */
+        /* Nav Header - Deep Forest Green */
         nav.topbar {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            height: 56px;
-            padding: 0 1.25rem;
-            border-bottom: 1px solid var(--line);
-            background: var(--panel);
+            height: 60px;
+            padding: 0 1.5rem;
+            background: var(--accent);
             flex-shrink: 0;
             z-index: 10;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
         nav.topbar .brand {
@@ -59,39 +60,40 @@
             align-items: center;
             gap: 0.6rem;
             font-weight: 700;
-            font-size: 1.05rem;
-            color: var(--ink);
+            font-size: 1.1rem;
+            color: #ffffff;
             text-decoration: none;
-            letter-spacing: -0.01em;
+            letter-spacing: 0.02em;
         }
 
         nav.topbar .brand svg {
             width: 22px;
             height: 22px;
-            fill: var(--accent);
+            fill: #ffffff;
         }
 
         nav.topbar .links {
             display: flex;
-            gap: 1.25rem;
+            gap: 1.5rem;
             align-items: center;
         }
 
-        nav.topbar a.nav-link {
-            color: var(--muted);
+        nav.topbar a.nav-link, nav.topbar span.nav-link {
+            color: #ffffff;
+            opacity: 0.85;
             text-decoration: none;
             font-size: 0.88rem;
             font-weight: 500;
             display: inline-flex;
             align-items: center;
             gap: 0.4rem;
-            transition: color 0.15s ease;
+            transition: opacity 0.15s ease;
         }
 
-        nav.topbar a.nav-link:hover { color: var(--accent); }
+        nav.topbar a.nav-link:hover { opacity: 1; }
 
         nav.topbar a.nav-link.primary {
-            color: var(--accent);
+            opacity: 1;
             font-weight: 600;
         }
 
@@ -102,7 +104,8 @@
             border: none;
             padding: 0;
             margin: 0;
-            color: var(--muted);
+            color: #ffffff;
+            opacity: 0.85;
             font-family: inherit;
             font-size: 0.88rem;
             font-weight: 500;
@@ -110,10 +113,23 @@
             display: inline-flex;
             align-items: center;
             gap: 0.35rem;
-            transition: color 0.15s ease;
+            transition: opacity 0.15s ease, color 0.15s ease;
         }
 
-        button.logout-btn:hover { color: var(--danger); }
+        button.logout-btn:hover { 
+            opacity: 1; 
+            color: #ffb3b3; 
+        }
+
+        /* Topbar Red Notification Badge matching screenshot */
+        nav.topbar .badge {
+            background: var(--danger);
+            color: #ffffff;
+            border: 2px solid var(--accent); /* Outer ring to match screenshot */
+            min-width: 1.25rem;
+            height: 1.25rem;
+            font-size: 0.65rem;
+        }
 
         /* Main Workspace Layout */
         main {
@@ -131,9 +147,9 @@
         }
 
         .whatsapp-sidebar {
-            width: 360px;
-            min-width: 300px;
-            max-width: 420px;
+            width: 480px; 
+            min-width: 400px;
+            max-width: 550px;
             border-right: 1px solid var(--line);
             background: var(--sidebar-bg);
             display: flex;
@@ -236,7 +252,7 @@
 
         .field input:focus {
             border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+            box-shadow: 0 0 0 3px rgba(49, 72, 51, 0.12);
         }
 
         .btn {
@@ -247,7 +263,7 @@
             width: 100%;
             padding: 0.7rem;
             border: none;
-            border-radius: 0.5rem;
+            border-radius: 4px;
             background: var(--accent);
             color: #ffffff;
             font-size: 0.95rem;
@@ -400,7 +416,7 @@
             flex: 1;
             resize: none;
             border: 1px solid var(--line);
-            border-radius: 0.6rem;
+            border-radius: 4px;
             padding: 0.65rem 0.85rem;
             font-family: inherit;
             font-size: 0.92rem;
@@ -424,7 +440,7 @@
             background: var(--accent);
             color: #ffffff;
             padding: 0.65rem 1.1rem;
-            border-radius: 0.6rem;
+            border-radius: 4px;
             font-size: 0.9rem;
             font-weight: 600;
             cursor: pointer;
@@ -457,10 +473,10 @@
         .close-form button:hover {
             border-color: var(--danger);
             color: var(--danger);
-            background: rgba(220, 38, 38, 0.05);
+            background: rgba(239, 68, 68, 0.05);
         }
 
-        /* Sidebar Conversation Queue */
+        /* List-View Conversation Queue */
         .queue-toolbar {
             display: flex;
             gap: 0.5rem;
@@ -492,7 +508,7 @@
             border: 1px solid var(--line);
             background: var(--panel);
             color: var(--muted);
-            border-radius: 999px;
+            border-radius: 4px;
             padding: 0.3rem 0.8rem;
             font-size: 0.8rem;
             font-weight: 500;
@@ -512,13 +528,11 @@
             flex: 1;
         }
 
-        .queue-rows.only-unread .queue-row:not(.unread) { display: none; }
-
+        /* The List Row UI */
         .queue-row {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.9rem 1rem;
+            flex-direction: column;
+            padding: 0.8rem 1rem;
             border-bottom: 1px solid var(--line);
             text-decoration: none;
             color: var(--ink);
@@ -528,42 +542,77 @@
         }
 
         .queue-row:hover { background: var(--paper); }
-        .queue-row.active { background: var(--accent-soft); border-left: 4px solid var(--accent); }
-        .queue-row .customer { font-weight: 600; font-size: 0.92rem; color: var(--ink); }
-        .queue-row .meta { color: var(--muted); font-size: 0.78rem; }
-
-        .queue-row .row-main {
+        .queue-row.active { background: var(--accent-soft); border-left: 3px solid var(--accent); }
+        
+        .queue-row .list-top {
             display: flex;
-            flex-direction: column;
-            gap: 0.2rem;
-            min-width: 0;
-            flex: 1;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.25rem;
         }
 
-        .queue-row .row-side {
+        .queue-row .customer-info {
             display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 0.35rem;
-            flex-shrink: 0;
-            margin-left: 0.8rem;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--ink);
+        }
+        
+        /* Agent avatar placeholder */
+        .queue-row .avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: var(--line);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+        }
+
+        .queue-row .meta-time { color: var(--muted); font-size: 0.75rem; }
+
+        .queue-row .list-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .queue-row .preview {
             color: var(--muted);
-            font-size: 0.83rem;
+            font-size: 0.82rem;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            max-width: 75%;
         }
 
-        .queue-row.unread {
-            background: #ffffff;
+        .queue-row .status-pill {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            text-transform: uppercase;
         }
+        
+        /* Dynamic Label Pill Styles */
+        .label-general { background: #f1f5f9; color: #475569; }
+        .label-support { background: #e7ece8; color: #314833; }
+        .label-sales { background: #fdf4ff; color: #c026d3; }
+        .label-urgent { background: #fef2f2; color: #ef4444; }
+        .label-bug { background: #fff7ed; color: #ea580c; }
+        
+        .queue-row .status-pill.open { background: var(--accent-soft); color: var(--accent-hover); }
+        .queue-row .status-pill.closed { background: var(--line); color: var(--muted); }
 
-        .queue-row.unread .customer { font-weight: 700; color: var(--accent); }
+        .queue-row.unread { background: #ffffff; }
+        .queue-row.unread .customer-info { font-weight: 700; color: var(--ink); }
         .queue-row.unread .preview { color: var(--ink); font-weight: 600; }
-        .queue-row.unread .meta { color: var(--accent); font-weight: 600; }
 
         /* Badges & Toasts */
         .badge {
@@ -596,7 +645,7 @@
             background: var(--panel);
             border: 1px solid var(--line);
             border-left: 4px solid var(--accent);
-            border-radius: 0.5rem;
+            border-radius: 4px;
             padding: 0.75rem 1rem;
             box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.1);
             max-width: 320px;
@@ -727,7 +776,8 @@
 
                 {% if user.is_staff %}
                     <a class="nav-link {% block nav_agent_active %}{% endblock %}" href="{% url 'agent_inbox' %}">
-                        Queue<span id="queue-badge" class="badge"{% if not agent_unread_count %} style="display:none;"{% endif %}>{{ agent_unread_count|default:"" }}</span>
+                        Queue
+                        <span id="queue-badge" class="badge"{% if not agent_unread_count %} style="display:none;"{% endif %}>{{ agent_unread_count|default:"" }}</span>
                     </a>
                 {% else %}
                     <a class="nav-link {% block nav_chat_active %}{% endblock %}" href="{% url 'chat' %}">
@@ -738,7 +788,7 @@
 
                 <span class="nav-link">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-                    {{ user.username }}
+                    {{ user.first_name|default:user.username }}
                 </span>
 
                 <form class="logout-form" method="post" action="{% url 'logout' %}">
@@ -750,7 +800,6 @@
                 </form>
             {% else %}
                 <a class="nav-link" href="{% url 'login' %}">Log in</a>
-                <a class="nav-link primary" href="{% url 'register' %}">Sign up</a>
             {% endif %}
         </div>
     </nav>

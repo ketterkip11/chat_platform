@@ -11,7 +11,7 @@ ALLOWED_HOSTS = ['*']
 
 INSTALLED_APPS = [
     'daphne',
-    'jazzmin',                 # <-- Must be placed before django.contrib.admin
+    'jazzmin',                 
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -37,7 +37,6 @@ ROOT_URLCONF = 'chat_platform.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        # THIS IS THE CRITICAL LINE: It tells Django to look here first
         'DIRS': [BASE_DIR / 'templates'], 
         'APP_DIRS': True,
         'OPTIONS': {
@@ -77,13 +76,25 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = 'static/'
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "chat"
 LOGOUT_REDIRECT_URL = "login"
 
 # ==========================================
-# JAZZMIN ADMIN CONFIGURATION (Blue/Black/White Theme)
+# STATIC & MEDIA FILE CONFIGURATION
+# ==========================================
+STATIC_URL = 'static/'
+
+# This tells Django where to find your custom root static folder
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# ==========================================
+# JAZZMIN ADMIN CONFIGURATION
 # ==========================================
 JAZZMIN_SETTINGS = {
     "site_title": "Support Admin",
@@ -107,13 +118,13 @@ JAZZMIN_SETTINGS = {
 
 JAZZMIN_UI_TWEAKS = {
     "navbar": "navbar-white navbar-light",
-    "theme": "lumen", # Clean white/blue baseline
-    "sidebar": "sidebar-dark-primary", # Black sidebar with blue accents
+    "theme": "lumen", 
+    "sidebar": "sidebar-dark-primary", 
     "sidebar_nav_child_indent": False,
     "sidebar_nav_compact_style": False,
     "sidebar_nav_legacy_style": False,
     "sidebar_nav_flat_style": True,
-    "accent": "accent-primary", # Royal blue highlights
+    "accent": "accent-primary", 
     "button_classes": {
         "primary": "btn-primary",
         "secondary": "btn-secondary",

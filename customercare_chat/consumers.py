@@ -39,11 +39,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         data = json.loads(text_data)
         text = (data.get("message") or "").strip()
-        if not text:
+        attachment_url = (data.get("attachment_url") or "").strip()
+        
+        # Reject empty submissions
+        if not text and not attachment_url:
             return
 
         user = self.scope["user"]
-        message, is_first_message = await self._save_message(user, self.conversation_id, text)
+        message, is_first_message = await self._save_message(user, self.conversation_id, text, attachment_url)
 
         await self.channel_layer.group_send(
             self.group_name,
@@ -60,13 +63,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
 
         if not user.is_staff:
+            notify_text = text if text else "Sent an attachment"
             await self.channel_layer.group_send(
                 AGENT_NOTIFICATIONS_GROUP,
                 {
                     "type": "agent.notify",
                     "conversation_id": int(self.conversation_id),
                     "customer_username": user.username,
-                    "message": message.message,
+                    "message": notify_text,
                     "timestamp": format_time(message.timestamp),
                     "is_new_conversation": is_first_message,
                 },
@@ -86,12 +90,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
         return Conversation.objects.filter(pk=conversation_id, customer=user).exists()
 
     @database_sync_to_async
-    def _save_message(self, user, conversation_id, text):
+    def _save_message(self, user, conversation_id, text, attachment_url):
         conversation = Conversation.objects.get(pk=conversation_id)
+        
+        # Fallback text if user only sends a file
+        body = text if text else "Sent an attachment"
+
         message = ChatMessage.objects.create(
             conversation=conversation,
             sender=user,
-            message=text,
+            message=body,
+            attachment_url=attachment_url,
         )
         is_first = not (
             ChatMessage.objects.filter(conversation=conversation)

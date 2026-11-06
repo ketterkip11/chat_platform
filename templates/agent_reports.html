@@ -48,6 +48,35 @@
         background: var(--paper);
     }
 
+    .section-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--ink);
+        margin: 2.5rem 0 1rem;
+        border-bottom: 2px solid var(--line);
+        padding-bottom: 0.5rem;
+    }
+    
+    .section-title:first-child { margin-top: 0; }
+
+    .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        padding: 1.5rem;
+        border-radius: 0.75rem;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.02);
+    }
+    
+    .stat-card h3 { margin: 0; font-size: 0.85rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;}
+    .stat-card .value { font-size: 2.5rem; font-weight: 700; color: var(--ink); margin-top: 0.5rem; }
+
     .chart-container {
         background: var(--panel);
         border: 1px solid var(--line);
@@ -56,7 +85,35 @@
         box-shadow: 0 2px 8px rgba(15, 23, 42, 0.02);
         height: 400px;
         width: 100%;
-        margin-top: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .date-filter-form {
+        display: flex;
+        gap: 1rem;
+        align-items: flex-end;
+        background: var(--panel);
+        padding: 1.25rem;
+        border-radius: 0.75rem;
+        border: 1px solid var(--line);
+        margin-bottom: 1.5rem;
+    }
+    
+    .date-filter-form .field { margin: 0; flex: 1; max-width: 250px; }
+    
+    .btn-secondary { background: #10b981; }
+    .btn-secondary:hover { background: #059669; }
+    
+    .btn-dark { background: #0f172a; }
+    .btn-dark:hover { background: #020617; }
+
+    @media print {
+        .agent-nav-sidebar, .topbar, .date-filter-form { display: none !important; }
+        .agent-main-content { padding: 0 !important; }
+        .stat-grid { display: flex; flex-direction: row; gap: 10px; }
+        .stat-card { flex: 1; border: 1px solid #ccc; break-inside: avoid; }
+        .chart-container { break-inside: avoid; border: 1px solid #ccc; margin-bottom: 10px; }
+        body { background: white !important; }
     }
 {% endblock %}
 
@@ -90,33 +147,136 @@
             <svg width="20" height="20" viewBox="0 0 24 24"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
             Settings
         </a>
-        
     </div>
 
     <!-- MAIN CONTENT -->
     <div class="agent-main-content">
-        <h1 style="margin-top: 0; color: var(--ink);">My Reports</h1>
-        <p style="color: var(--muted);">Chats assigned to you over the last 7 days.</p>
         
+        <!-- SECTION 1: Overview -->
+        <h2 class="section-title">1. {% if is_admin %}Platform Overview{% else %}My Overview{% endif %}</h2>
+        <div class="stat-grid">
+            <div class="stat-card">
+                <h3>{% if is_admin %}Total Lifetime Chats{% else %}Total Assigned To Me{% endif %}</h3>
+                <div class="value">{{ total_convos }}</div>
+            </div>
+            <div class="stat-card">
+                <h3>Currently Active</h3>
+                <div class="value" style="color: #10b981;">{{ active_convos }}</div>
+            </div>
+            <div class="stat-card">
+                <h3>Closed / Resolved</h3>
+                <div class="value">{{ closed_convos }}</div>
+            </div>
+            {% if is_admin %}
+                <div class="stat-card">
+                    <h3>Unassigned Queue</h3>
+                    <div class="value" style="color: var(--danger);">{{ missed_convos }}</div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- SECTION 2: Agent Performance (Admin Only) -->
+        {% if is_admin %}
+            <h2 class="section-title">2. Agent Performance</h2>
+            <div class="chart-container">
+                <canvas id="agentStatsChart"></canvas>
+            </div>
+        {% endif %}
+
+        <!-- SECTION 3: Time Series Analysis -->
+        <h2 class="section-title">{% if is_admin %}3. {% else %}2. {% endif %}Timeline Analysis</h2>
+        
+        <form method="GET" class="date-filter-form">
+            <div class="field">
+                <label>Start Date</label>
+                <input type="date" name="start_date" id="start_date" value="{{ start_date }}" required>
+            </div>
+            <div class="field">
+                <label>End Date</label>
+                <input type="date" name="end_date" id="end_date" value="{{ end_date }}" required>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                <button type="submit" class="btn" style="width: auto; padding: 0.65rem 1.5rem;">Filter</button>
+                <button type="button" class="btn btn-secondary" style="width: auto; padding: 0.65rem 1.5rem;" onclick="exportExcel()">Export Excel</button>
+                <button type="button" class="btn btn-dark" style="width: auto; padding: 0.65rem 1.5rem;" onclick="window.print()">Export PDF</button>
+            </div>
+        </form>
+
         <div class="chart-container">
-            <canvas id="agentVolumeChart"></canvas>
+            <canvas id="timelineChart"></canvas>
         </div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    function exportExcel() {
+        const start = document.getElementById('start_date').value;
+        const end = document.getElementById('end_date').value;
+        window.location.href = `{% url 'export_reports' %}?start_date=${start}&end_date=${end}`;
+    }
+
     document.addEventListener("DOMContentLoaded", function() {
-        const ctx = document.getElementById('agentVolumeChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'bar',
+        
+        {% if is_admin %}
+            // Setup Agent Performance Chart (Section 2)
+            const agentCtx = document.getElementById('agentStatsChart').getContext('2d');
+            new Chart(agentCtx, {
+                type: 'bar',
+                data: {
+                    labels: {{ agent_names|safe }},
+                    datasets: [
+                        {
+                            label: 'Total Assigned',
+                            backgroundColor: '#64748b', // Muted Grey
+                            data: {{ agent_totals|safe }},
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Active (Unresolved)',
+                            backgroundColor: '#10b981', // Emerald Green
+                            data: {{ agent_active|safe }},
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Marked Closed',
+                            backgroundColor: '#2563eb', // Accent Blue
+                            data: {{ agent_closed|safe }},
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { beginAtZero: true, grid: { color: "#e2e8f0" } }
+                    }
+                }
+            });
+        {% endif %}
+
+        // Setup Timeline Line Chart (Section 3)
+        const timelineCtx = document.getElementById('timelineChart').getContext('2d');
+        new Chart(timelineCtx, {
+            type: 'line',
             data: {
-                labels: {{ chart_labels|safe }},
+                labels: {{ ts_labels|safe }},
                 datasets: [{
-                    label: 'Chats Handled',
-                    backgroundColor: '#2563eb', // Accent color
-                    borderRadius: 4,
-                    data: {{ chart_data|safe }}
+                    label: 'Chats Created',
+                    borderColor: '#2563eb',
+                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                    borderWidth: 3,
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#2563eb',
+                    pointRadius: 4,
+                    fill: true,
+                    tension: 0.3,
+                    data: {{ ts_data|safe }}
                 }]
             },
             options: {
@@ -124,10 +284,11 @@
                 plugins: { legend: { display: false } },
                 scales: {
                     x: { grid: { display: false } },
-                    y: { beginAtZero: true, grid: { color: "#e2e8f0" } }
+                    y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: "#e2e8f0" } }
                 }
             }
         });
+
     });
 </script>
 {% endblock %}
