@@ -1,13 +1,16 @@
 """
 Django settings for chat_platform project.
 """
+import os
+import dj_database_url
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-0!8nl@i=8%+y_quat3cykbty8esqq$qud57hd35q$55l-g#ux9'
-DEBUG = True
-ALLOWED_HOSTS = ['*']
+# It is best practice to pull the secret key from the Render environment variables
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-0!8nl@i=8%+y_quat3cykbty8esqq$qud57hd35q$55l-g#ux9')
+DEBUG = False
+ALLOWED_HOSTS = ['your-app-name.onrender.com', 'localhost', '127.0.0.1', '*']
 
 INSTALLED_APPS = [
     'daphne',
@@ -24,6 +27,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Added for production static files
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -53,15 +57,19 @@ TEMPLATES = [
 WSGI_APPLICATION = 'chat_platform.wsgi.application'
 ASGI_APPLICATION = 'chat_platform.asgi.application'
 
+# Configured for Render Redis
 CHANNEL_LAYERS = {
-    'default': {'BACKEND': 'channels.layers.InMemoryChannelLayer'},
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [os.environ.get('REDIS_URL', 'redis://localhost:6379')],
+        },
+    },
 }
 
+# Configured for Render PostgreSQL
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(default='sqlite:///db.sqlite3', conn_max_age=600)
 }
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -84,6 +92,7 @@ LOGOUT_REDIRECT_URL = "login"
 # STATIC & MEDIA FILE CONFIGURATION
 # ==========================================
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'  # Required by Whitenoise and Render
 
 # This tells Django where to find your custom root static folder
 STATICFILES_DIRS = [
