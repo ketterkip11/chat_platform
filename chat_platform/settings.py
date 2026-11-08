@@ -10,7 +10,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # It is best practice to pull the secret key from the Render environment variables
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-0!8nl@i=8%+y_quat3cykbty8esqq$qud57hd35q$55l-g#ux9')
 DEBUG = False
-ALLOWED_HOSTS = ['your-app-name.onrender.com', 'localhost', '127.0.0.1', '*']
+
+ALLOWED_HOSTS = ['chat-platform-qhc5.onrender.com', 'localhost', '127.0.0.1', '*']
+CSRF_TRUSTED_ORIGINS = ['https://chat-platform-qhc5.onrender.com']
 
 INSTALLED_APPS = [
     'daphne',
@@ -27,7 +29,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # Added for production static files
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -92,7 +94,7 @@ LOGOUT_REDIRECT_URL = "login"
 # STATIC & MEDIA FILE CONFIGURATION
 # ==========================================
 STATIC_URL = 'static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'  # Required by Whitenoise and Render
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # This tells Django where to find your custom root static folder
 STATICFILES_DIRS = [
